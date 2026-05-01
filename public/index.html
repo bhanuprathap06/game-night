@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>🎮 Game Night — Multiplayer Games</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --card: #16213e;
+  --border: #0f3460;
+  --accent: #e94560;
+  --accent2: #533483;
+  --accent3: #00b4d8;
+  --green: #06d6a0;
+  --yellow: #ffd60a;
+  --text: #eaeaea;
+  --muted: #8888aa;
+  --radius: 16px;
+  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;}
+
+/* ── Starfield Background ── */
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 50%, rgba(83,52,131,0.15) 0%, transparent 50%),radial-gradient(ellipse at 80% 20%, rgba(233,69,96,0.1) 0%, transparent 40%);pointer-events:none;}
+
+/* ── Layout ── */
+.screen{display:none;min-height:100vh;padding:20px;animation:fadeIn .4s ease;}
+.screen.active{display:flex;flex-direction:column;align-items:center;justify-content:center;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Header ── */
+.logo{text-align:center;margin-bottom:32px;}
+.logo h1{font-size:clamp(2rem,5vw,3.5rem);font-weight:900;background:linear-gradient(135deg,#e94560,#533483,#00b4d8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1px;}
+.logo p{color:var(--muted);font-size:1rem;margin-top:6px;}
+
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px;width:100%;max-width:480px;box-shadow:var(--shadow);}
+.card h2{font-size:1.4rem;margin-bottom:20px;color:var(--text);}
+
+/* ── Inputs ── */
+input,select{width:100%;background:#0d1b2a;border:2px solid var(--border);border-radius:10px;padding:14px 16px;color:var(--text);font-size:1rem;outline:none;transition:border-color .2s;}
+input:focus,select:focus{border-color:var(--accent);}
+input::placeholder{color:var(--muted);}
+.input-group{margin-bottom:16px;}
+.input-group label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 28px;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s;text-decoration:none;width:100%;}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(233,69,96,.4);}
+.btn-secondary{background:var(--surface);border:2px solid var(--border);color:var(--text);}
+.btn-secondary:hover{border-color:var(--accent3);color:var(--accent3);}
+.btn-green{background:linear-gradient(135deg,#06d6a0,#0077b6);color:#fff;}
+.btn-green:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(6,214,160,.4);}
+.btn-yellow{background:linear-gradient(135deg,#ffd60a,#f77f00);color:#111;}
+.btn-yellow:hover{transform:translateY(-2px);}
+.btn-small{padding:8px 16px;font-size:.85rem;width:auto;}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
+.btn-row{display:flex;gap:10px;margin-top:16px;}
+.btn-row .btn{flex:1;}
+
+/* ── Divider ── */
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--muted);}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── Game Picker ── */
+.game-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0;}
+.game-card{background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;text-align:center;}
+.game-card:hover,.game-card.selected{border-color:var(--accent);background:rgba(233,69,96,.1);}
+.game-card .icon{font-size:2.2rem;margin-bottom:8px;}
+.game-card .name{font-weight:700;font-size:.95rem;}
+.game-card .desc{font-size:.75rem;color:var(--muted);margin-top:4px;}
+
+/* ── Lobby ── */
+.lobby-wrap{width:100%;max-width:600px;}
+.room-header{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 28px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.room-code-big{font-size:2rem;font-weight:900;letter-spacing:4px;color:var(--yellow);font-family:monospace;}
+.room-code-label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.copy-btn{background:var(--surface);border:1px solid var(--border);color:var(--accent3);border-radius:8px;padding:8px 16px;cursor:pointer;font-size:.85rem;font-weight:600;}
+.copy-btn:hover{background:rgba(0,180,216,.15);}
+
+.player-list{display:flex;flex-direction:column;gap:8px;margin:16px 0;}
+.player-chip{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:10px;}
+.player-chip .avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1rem;flex-shrink:0;}
+.player-chip .pname{font-weight:600;}
+.player-chip .host-badge{font-size:.7rem;background:var(--yellow);color:#111;padding:2px 8px;border-radius:4px;font-weight:700;margin-left:auto;}
+.player-chip .score-badge{font-size:.8rem;color:var(--accent3);margin-left:auto;font-weight:700;}
+
+.waiting-msg{text-align:center;color:var(--muted);padding:20px;font-size:.95rem;}
+.pulse{animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ── Game Containers ── */
+.game-wrap{width:100%;max-width:700px;}
+.game-header{text-align:center;margin-bottom:24px;}
+.game-header h2{font-size:1.6rem;font-weight:900;}
+.game-header p{color:var(--muted);margin-top:4px;}
+
+/* ── Tic Tac Toe ── */
+.ttt-board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:360px;margin:0 auto 24px;}
+.ttt-cell{aspect-ratio:1;background:var(--card);border:2px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:3rem;font-weight:900;cursor:pointer;transition:all .2s;user-select:none;}
+.ttt-cell:hover:not(.filled){background:rgba(233,69,96,.15);border-color:var(--accent);}
+.ttt-cell.x{color:#e94560;border-color:#e94560;}
+.ttt-cell.o{color:#00b4d8;border-color:#00b4d8;}
+.ttt-cell.filled{cursor:default;}
+.ttt-cell.win-cell{background:rgba(255,214,10,.15);border-color:var(--yellow);}
+.ttt-status{text-align:center;margin-bottom:20px;}
+.ttt-turn{font-size:1.1rem;font-weight:700;padding:12px 24px;border-radius:10px;background:var(--surface);display:inline-block;}
+.ttt-players{display:flex;gap:12px;justify-content:center;margin-bottom:20px;}
+.ttt-player-card{flex:1;max-width:160px;background:var(--surface);border:2px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
+.ttt-player-card.active{border-color:var(--accent);background:rgba(233,69,96,.1);}
+.ttt-symbol{font-size:1.8rem;font-weight:900;margin-bottom:4px;}
+.ttt-player-card.x .ttt-symbol{color:#e94560;}
+.ttt-player-card.o .ttt-symbol{color:#00b4d8;}
+.spectator-notice{text-align:center;color:var(--muted);font-size:.9rem;padding:12px;background:var(--surface);border-radius:8px;margin-bottom:16px;}
+
+/* ── Imposter ── */
+.role-reveal{text-align:center;padding:32px 24px;}
+.role-card{background:var(--card);border:2px solid var(--border);border-radius:var(--radius);padding:32px;margin:20px 0;position:relative;overflow:hidden;}
+.role-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(233,69,96,.05),transparent);pointer-events:none;}
+.role-badge{display:inline-block;padding:6px 18px;border-radius:20px;font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
+.role-badge.imposter{background:rgba(233,69,96,.2);color:#e94560;border:1px solid #e94560;}
+.role-badge.crewmate{background:rgba(6,214,160,.2);color:#06d6a0;border:1px solid #06d6a0;}
+.role-word{font-size:2.5rem;font-weight:900;margin:8px 0;}
+.role-category{color:var(--muted);font-size:.9rem;}
+.role-tip{font-size:.85rem;color:var(--muted);margin-top:12px;font-style:italic;}
+
+.clue-input-area{background:var(--card);border-radius:var(--radius);padding:24px;margin:16px 0;}
+.clue-list{display:flex;flex-direction:column;gap:8px;margin:16px 0;max-height:200px;overflow-y:auto;}
+.clue-item{background:var(--surface);border-radius:8px;padding:10px 14px;display:flex;align-items:baseline;gap:10px;}
+.clue-item .cn{font-weight:700;font-size:.85rem;color:var(--accent3);min-width:80px;}
+.clue-item .ct{font-size:.95rem;}
+
+.vote-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin:16px 0;}
+.vote-btn{background:var(--surface);border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;text-align:center;transition:all .2s;font-size:.95rem;font-weight:600;}
+.vote-btn:hover{border-color:var(--accent);background:rgba(233,69,96,.1);}
+.vote-btn.voted{border-color:var(--accent);background:rgba(233,69,96,.2);cursor:default;}
+
+.reveal-card{background:var(--card);border-radius:var(--radius);padding:28px;text-align:center;border:2px solid var(--border);}
+.reveal-card.caught{border-color:var(--green);}
+.reveal-card.escaped{border-color:var(--accent);}
+.result-big{font-size:2rem;font-weight:900;margin:12px 0;}
+.result-big.caught{color:var(--green);}
+.result-big.escaped{color:var(--accent);}
+
+/* ── Decode ── */
+.encoded-display{background:var(--card);border-radius:var(--radius);padding:28px;text-align:center;margin:16px 0;border:2px solid var(--border);}
+.encoded-text{font-size:clamp(1.4rem,4vw,2.2rem);font-weight:900;letter-spacing:6px;font-family:monospace;color:var(--yellow);word-break:break-all;}
+.encoded-hint{font-size:.9rem;color:var(--muted);margin-top:8px;}
+.alphabet-ref{background:var(--surface);border-radius:10px;padding:16px;font-family:monospace;font-size:.8rem;color:var(--muted);margin:12px 0;line-height:1.8;}
+.reveal-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:12px 0;}
+.reveal-letter{width:36px;height:40px;background:var(--card);border:2px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:900;font-family:monospace;font-size:1.1rem;}
+.reveal-letter.revealed{border-color:var(--green);color:var(--green);}
+.reveal-letter.space{background:transparent;border-color:transparent;width:16px;}
+.guess-list{max-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin:12px 0;}
+.guess-item{background:var(--surface);border-radius:6px;padding:8px 12px;font-size:.85rem;display:flex;gap:8px;}
+.guess-item .gn{color:var(--accent3);font-weight:700;}
+.guess-item .gv{font-family:monospace;}
+.guess-item.wrong .gv{color:var(--accent);text-decoration:line-through;}
+
+/* ── Truth or Dare ── */
+.tod-wheel{display:flex;flex-direction:column;align-items:center;padding:24px;}
+.tod-spotlight{background:var(--card);border:2px solid var(--border);border-radius:var(--radius);padding:32px;text-align:center;margin:16px 0;width:100%;}
+.tod-name{font-size:2rem;font-weight:900;color:var(--yellow);}
+.tod-prompt{font-size:1rem;color:var(--muted);margin-top:4px;}
+.tod-choices{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0;width:100%;}
+.tod-choice{padding:20px;border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;text-align:center;transition:all .2s;background:var(--surface);}
+.tod-choice.truth:hover{border-color:var(--accent3);background:rgba(0,180,216,.1);}
+.tod-choice.dare:hover{border-color:var(--accent);background:rgba(233,69,96,.1);}
+.tod-choice .ci{font-size:2.5rem;display:block;margin-bottom:8px;}
+.tod-choice .cl{font-size:1.1rem;font-weight:700;}
+.tod-content-card{background:var(--card);border-radius:var(--radius);padding:24px;margin:16px 0;width:100%;border:2px solid var(--border);}
+.tod-content-card.truth{border-color:var(--accent3);}
+.tod-content-card.dare{border-color:var(--accent);}
+.tod-type{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.tod-content-card.truth .tod-type{color:var(--accent3);}
+.tod-content-card.dare .tod-type{color:var(--accent);}
+.tod-text{font-size:1.15rem;line-height:1.6;}
+.spin-btn{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;border:none;border-radius:50%;width:80px;height:80px;font-size:2rem;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;}
+.spin-btn:hover{transform:rotate(20deg) scale(1.1);}
+.spinning{animation:spin 0.6s ease-out;}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(720deg)}}
+
+/* ── Players Sidebar (in-game) ── */
+.game-layout{display:flex;gap:16px;width:100%;max-width:800px;align-items:flex-start;}
+.game-main{flex:1;min-width:0;}
+.game-sidebar{width:180px;flex-shrink:0;}
+.score-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.score-panel h3{font-size:.8rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;}
+.score-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.9rem;}
+.score-row:last-child{border:none;}
+.score-pts{font-weight:900;color:var(--yellow);}
+.score-row.me .score-name{color:var(--accent3);}
+
+/* ── Toast ── */
+.toast-wrap{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none;}
+.toast{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:.9rem;animation:slideIn .3s ease,fadeOut .3s ease 2.7s forwards;max-width:300px;}
+.toast.error{border-color:var(--accent);background:rgba(233,69,96,.15);}
+.toast.success{border-color:var(--green);background:rgba(6,214,160,.15);}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes fadeOut{to{opacity:0;transform:translateX(100%)}}
+
+/* ── Scoreboard ── */
+.scoreboard{background:var(--card);border-radius:var(--radius);padding:24px;width:100%;max-width:420px;border:1px solid var(--border);}
+.score-entry{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.score-entry:last-child{border:none;}
+.score-rank{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.85rem;flex-shrink:0;}
+.rank-1{background:var(--yellow);color:#111;}
+.rank-2{background:#c0c0c0;color:#111;}
+.rank-3{background:#cd7f32;color:#fff;}
+.rank-n{background:var(--surface);color:var(--muted);}
+.score-entry .sname{flex:1;font-weight:600;}
+.score-entry .spts{font-size:1.2rem;font-weight:900;color:var(--yellow);}
+
+/* ── Responsive ── */
+@media(max-width:600px){
+  .game-layout{flex-direction:column;}
+  .game-sidebar{width:100%;}
+  .game-grid{grid-template-columns:1fr 1fr;}
+  .ttt-board{max-width:300px;}
+  .ttt-cell{font-size:2.2rem;}
+  .tod-choices{grid-template-columns:1fr 1fr;}
+}
+
+/* ── Misc utils ── */
+.mt-12{margin-top:12px;}
+.mt-16{margin-top:16px;}
+.mt-20{margin-top:20px;}
+.text-center{text-align:center;}
+.text-muted{color:var(--muted);}
+.text-green{color:var(--green);}
+.text-yellow{color:var(--yellow);}
+.text-red{color:var(--accent);}
+.hidden{display:none!important;}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:700;}
+.badge-blue{background:rgba(0,180,216,.2);color:var(--accent3);}
+.waiting-dots::after{content:'...';animation:dots 1.5s infinite;}
+@keyframes dots{0%{content:'.'}33%{content:'..'}66%{content:'...'}100%{content:'.'}}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+  SCREEN 1 — HOME
+══════════════════════════════════════════════════ -->
+<div id="screen-home" class="screen active">
+  <div class="logo">
+    <h1>🎮 Game Night</h1>
+    <p>Multiplayer games for everyone — play from any device</p>
+  </div>
+  <div class="card">
+    <div class="input-group">
+      <label>Your Name</label>
+      <input id="home-name" type="text" placeholder="Enter your nickname..." maxlength="20" autocomplete="off"/>
+    </div>
+    <button class="btn btn-primary" onclick="goToCreate()">➕ Create a Room</button>
+    <div class="divider">or</div>
+    <div class="input-group">
+      <label>Room Code</label>
+      <input id="home-code" type="text" placeholder="Enter 5-letter code..." maxlength="5" style="text-transform:uppercase;letter-spacing:4px;font-family:monospace;font-size:1.2rem;" autocomplete="off"/>
+    </div>
+    <button class="btn btn-green" onclick="joinRoom()">🚀 Join Room</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+  SCREEN 2 — CREATE ROOM
+══════════════════════════════════════════════════ -->
+<div id="screen-create" class="screen">
+  <div class="logo"><h1>🎮 Game Night</h1></div>
+  <div class="card">
+    <h2>Choose a Game</h2>
+    <div class="game-grid">
+      <div class="game-card selected" data-game="tictactoe" onclick="selectGame(this)">
+        <div class="icon">❌⭕</div>
+        <div class="name">Tic-Tac-Toe</div>
+        <div class="desc">2 players • Classic</div>
+      </div>
+      <div class="game-card" data-game="imposter" onclick="selectGame(this)">
+        <div class="icon">🕵️</div>
+        <div class="name">Find the Imposter</div>
+        <div class="desc">3–8 players • Social</div>
+      </div>
+      <div class="game-card" data-game="decode" onclick="selectGame(this)">
+        <div class="icon">🔐</div>
+        <div class="name">Decode Message</div>
+        <div class="desc">2–8 players • Puzzle</div>
+      </div>
+      <div class="game-card" data-game="truthordare" onclick="selectGame(this)">
+        <div class="icon">🎯</div>
+        <div class="name">Truth or Dare</div>
+        <div class="desc">2–8 players • Party</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="createRoom()">Create Room 🎲</button>
+    <div class="btn-row mt-12">
+      <button class="btn btn-secondary" onclick="showScreen('screen-home')">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+  SCREEN 3 — LOBBY
+══════════════════════════════════════════════════ -->
+<div id="screen-lobby" class="screen">
+  <div class="lobby-wrap">
+    <div class="room-header">
+      <div>
+        <div class="room-code-label">Room Code — share with friends 👇</div>
+        <div class="room-code-big" id="lobby-code">XXXXX</div>
+      </div>
+      <button class="copy-btn" onclick="copyCode()">📋 Copy Code</button>
+    </div>
+    <div class="card" style="max-width:100%">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+        <h2 id="lobby-game-name">Game: Tic-Tac-Toe</h2>
+        <span class="badge badge-blue" id="lobby-player-count">1 player</span>
+      </div>
+      <div id="lobby-game-selector" class="hidden">
+        <div class="game-grid" id="lobby-game-grid">
+          <div class="game-card selected" data-game="tictactoe" onclick="changeGame(this)">
+            <div class="icon">❌⭕</div><div class="name">Tic-Tac-Toe</div>
+          </div>
+          <div class="game-card" data-game="imposter" onclick="changeGame(this)">
+            <div class="icon">🕵️</div><div class="name">Find the Imposter</div>
+          </div>
+          <div class="game-card" data-game="decode" onclick="changeGame(this)">
+            <div class="icon">🔐</div><div class="name">Decode Message</div>
+          </div>
+          <div class="game-card" data-game="truthordare" onclick="changeGame(this)">
+            <div class="icon">🎯</div><div class="name">Truth or Dare</div>
+          </div>
+        </div>
+      </div>
+      <div id="player-list" class="player-list"></div>
+      <div id="lobby-waiting" class="waiting-msg">
+        <span class="pulse">⏳</span> Waiting for players to join<span class="waiting-dots"></span>
+      </div>
+      <div id="host-controls" class="hidden">
+        <button class="btn btn-primary mt-16" onclick="startGame()" id="start-btn">▶ Start Game</button>
+        <div class="btn-row mt-12">
+          <button class="btn btn-secondary btn-small" onclick="toggleGameSelector()">🎮 Change Game</button>
+          <button class="btn btn-secondary btn-small" onclick="leaveRoom()">🚪 Leave</button>
+        </div>
+      </div>
+      <div id="guest-controls" class="hidden">
+        <button class="btn btn-secondary mt-16" onclick="leaveRoom()">🚪 Leave Room</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+  SCREEN 4 — TIC TAC TOE
+══════════════════════════════════════════════════ -->
+<div id="screen-ttt" class="screen">
+  <div class="game-layout">
+    <div class="game-main">
+      <div class="game-header">
+        <h2>❌⭕ Tic-Tac-Toe</h2>
+        <p id="ttt-room-label">Room: XXXXX</p>
+      </div>
+      <div id="ttt-spectator" class="spectator-notice hidden">👀 You are watching this match</div>
+      <div class="ttt-players" id="ttt-players"></div>
+      <div class="ttt-status">
+        <div class="ttt-turn" id="ttt-turn-msg">Waiting...</div>
+      </div>
+      <div class="ttt-board" id="ttt-board"></div>
+      <div id="ttt-result-area" class="hidden text-center mt-16">
+        <div id="ttt-result-msg" style="font-size:1.4rem;font-weight:900;margin-bottom:12px;"></div>
+        <div id="ttt-host-btns" class="btn-row" style="justify-content:center;max-width:360px;margin:0 auto;">
+          <button class="btn btn-green btn-small" onclick="rematchTTT()">🔄 Rematch</button>
+          <button class="btn btn-secondary btn-small" onclick="backToLobby()">🏠 Lobby</button>
+        </div>
+        <div id="ttt-guest-btns" class="hidden text-muted mt-12">Waiting for host to continue...</div>
+      </div>
+    </div>
+    <div class="game-sidebar">
+      <div class="score-panel">
+        <h3>🏆 Scores</h3>
+        <div id="ttt-scores"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+  SCREEN 5 — IMPOSTER
+══════════════════════════════════════════════════ -->
+<div id="screen-imposter" class="screen">
+  <div class="game-layout">
+    <div class="game-main">
+      <div class="game-header">
+        <h2>🕵️ Find the Imposter</h2>
+        <p id="imp-room-label">Room: XXXXX</p>
+      </div>
+
+      <!-- Phase: Role Reveal -->
+      <div id="imp-role" class="hidden">
+        <div class="role-reveal">
+          <p style="color:var(--muted);margin-bottom:8px;">Your secret role:</p>
+          <div class="role-card">
+            <div id="imp-role-badge" class="role-badge imposter">Imposter</div>
+            <div class="role-category" id="imp-category">Category: Animals</div>
+            <div class="role-word" id="imp-word">ELEPHANT</div>
+            <div class="role-tip" id="imp-tip">Blend in — don't reveal you're the imposter!</div>
+          </div>
+          <p class="text-muted" style="font-size:.85rem;">Clue phase starts in a moment<span class="waiting-dots"></span></p>
+        </div>
+      </div>
+
+      <!-- Phase: Give Clue -->
+      <div id="imp-clue-phase" class="hidden">
+        <p class="text-muted text-center" style="margin-bottom:12px;">Clues given so far:</p>
+        <div class="clue-list" id="imp-clue-list"></div>
+        <div id="imp-your-turn" class="clue-input-area hidden">
+          <p style="font-weight:700;margin-bottom:12px;">🎤 Your turn! Give a one-word clue about your word:</p>
+          <div style="display:flex;gap:10px;">
+            <input id="imp-clue-input" type="text" placeholder="Type a clue..." maxlength="30" style="flex:1;" onkeydown="if(event.key==='Enter')sendClue()"/>
+            <button class="btn btn-primary btn-small" onclick="sendClue()" style="width:auto;white-space:nowrap;">Send →</button>
+          </div>
+        </div>
+        <div id="imp-waiting-turn" class="waiting-msg hidden">
+          <span id="imp-waiting-name" class="text-yellow"></span> is giving their clue<span class="waiting-dots"></span>
+        </div>
+      </div>
+
+      <!-- Phase: Vote -->
+      <div id="imp-vote-phase" class="hidden">
+        <h3 style="text-align:center;margin-bottom:8px;">🗳️ Vote! Who is the Imposter?</h3>
+        <p class="text-muted text-center" style="margin-bottom:12px;font-size:.85rem;">All clues in — time to vote!</p>
+        <div class="clue-list" id="imp-vote-clue-list"></div>
+        <div class="vote-grid" id="imp-vote-grid"></div>
+        <p id="imp-vote-count" class="text-center text-muted mt-12 pulse"></p>
+      </div>
+
+      <!-- Phase: Reveal -->
+      <div id="imp-reveal" class="hidden">
+        <div class="reveal-card" id="imp-reveal-card">
+          <div id="imp-reveal-emoji" style="font-size:3rem;margin-bottom:12px;">🎭</div>
+          <div class="result-big" id="imp-result-big">Caught!</div>
+          <p id="imp-result-desc" style="color:var(--muted);margin:8px 0;"></p>
+          <div style="margin:16px 0;padding:16px;background:var(--surface);border-radius:10px;">
+            <div style="font-size:.85rem;color:var(--muted);margin-bottom:4px;">The word was:</div>
+            <div style="font-size:1.5rem;font-weight:900;" id="imp-reveal-word"></div>
+            <div style="font-size:.85rem;color:var(--muted);" id="imp-reveal-impword"></div>
+          </div>
+          <div id="imp-host-next" class="hidden">
+            <div class="btn-row" style="justify-content:center;">
+              <button class="btn btn-green btn-small" onclick="nextImposterRound()">▶ Next Round</button>
+              <button class="btn btn-secondary btn-small" onclick="backToLobby()">🏠 Lobby</button>
+            </div>
+          </div>
+          <div id="imp-guest-next" class="hidden text-muted mt-12">Waiting for host<span class="waiting-dots"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="game-sidebar">
+      <div class="score-panel">
+        <h3>🏆 Scores</h3>
+        <div id="imp-scores"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+  SCREEN 6 — DECODE
+══════════════════════════════════════════════════ -->
+<div id="screen-decode" class="screen">
+  <div class="game-layout">
+    <div class="game-main">
+      <div class="game-header">
+        <h2>🔐 Decode the Message</h2>
+        <p id="dec-room-label">Room: XXXXX</p>
+      </div>
+      <div class="encoded-display">
+        <div class="encoded-text" id="dec-encoded"></div>
+        <div class="encoded-hint" id="dec-hint"></div>
+      </div>
+      <div>
+        <p style="font-size:.8rem;color:var(--muted);text-align:center;margin-bottom:8px;">💡 Letters shift in Caesar cipher (A→D, B→E, ...)</p>
+        <div class="reveal-row" id="dec-reveal-row"></div>
+      </div>
+      <div class="guess-list" id="dec-guess-list"></div>
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <input id="dec-guess-input" type="text" placeholder="Type your decoded message..." autocomplete="off" style="flex:1;" onkeydown="if(event.key==='Enter')sendDecodeGuess()"/>
+        <button class="btn btn-primary btn-small" onclick="sendDecodeGuess()" style="width:auto;white-space:nowrap;">Guess →</button>
+      </div>
+      <div id="dec-host-hint-btn" class="hidden mt-12">
+        <button class="btn btn-yellow btn-small" onclick="requestHint()" style="width:auto;">💡 Give Hint (<span id="dec-hints-left">3</span> left)</button>
+      </div>
+      <div id="dec-solved-panel" class="hidden mt-16 text-center">
+        <div style="font-size:1.4rem;font-weight:900;color:var(--green);margin-bottom:8px;">✅ Message Decoded!</div>
+        <div id="dec-solver-name" style="color:var(--muted);"></div>
+        <div id="dec-host-next" class="hidden btn-row mt-16" style="justify-content:center;">
+          <button class="btn btn-green btn-small" onclick="nextDecodeRound()">▶ Next Round</button>
+          <button class="btn btn-secondary btn-small" onclick="backToLobby()">🏠 Lobby</button>
+        </div>
+        <div id="dec-guest-next" class="hidden text-muted mt-12">Waiting for host<span class="waiting-dots"></span></div>
+      </div>
+    </div>
+    <div class="game-sidebar">
+      <div class="score-panel">
+        <h3>🏆 Scores</h3>
+        <div id="dec-scores"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+  SCREEN 7 — TRUTH OR DARE
+══════════════════════════════════════════════════ -->
+<div id="screen-tod" class="screen">
+  <div class="game-layout">
+    <div class="game-main">
+      <div class="game-header">
+        <h2>🎯 Truth or Dare</h2>
+        <p id="tod-room-label">Room: XXXXX</p>
+      </div>
+      <div class="tod-wheel">
+        <div class="tod-spotlight">
+          <p style="color:var(--muted);font-size:.85rem;margin-bottom:4px;">It's time for...</p>
+          <div class="tod-name" id="tod-player-name">Player</div>
+          <p class="tod-prompt" id="tod-prompt">Choose your fate!</p>
+        </div>
+
+        <!-- Choices (shown to current player) -->
+        <div class="tod-choices" id="tod-choices">
+          <div class="tod-choice truth" onclick="pickTOD('truth')">
+            <span class="ci">🤔</span>
+            <span class="cl">Truth</span>
+          </div>
+          <div class="tod-choice dare" onclick="pickTOD('dare')">
+            <span class="ci">🔥</span>
+            <span class="cl">Dare</span>
+          </div>
+        </div>
+
+        <!-- Content card (shown after pick) -->
+        <div class="tod-content-card hidden" id="tod-content-card">
+          <div class="tod-type" id="tod-type-label">TRUTH</div>
+          <div class="tod-text" id="tod-content-text"></div>
+        </div>
+
+        <div style="display:flex;gap:12px;align-items:center;margin-top:16px;width:100%;">
+          <button class="spin-btn" id="tod-spin-btn" onclick="spinTOD()" title="Spin to pick random player">🎲</button>
+          <div style="flex:1;">
+            <button class="btn btn-secondary" id="tod-next-btn" onclick="nextTOD()">⏭ Next Player</button>
+          </div>
+        </div>
+        <p class="text-muted" style="font-size:.8rem;margin-top:8px;">🎲 Spin to pick a random player</p>
+      </div>
+    </div>
+    <div class="game-sidebar">
+      <div class="score-panel">
+        <h3>👥 Players</h3>
+        <div id="tod-player-list"></div>
+      </div>
+      <div style="margin-top:12px;">
+        <button class="btn btn-secondary btn-small" onclick="backToLobby()" id="tod-back-btn" style="display:none;">🏠 Lobby</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+const socket = io();
+let myName = '';
+let myRoomCode = '';
+let isHost = false;
+let myId = socket.id;
+let selectedGame = 'tictactoe';
+let currentPlayers = [];
+let tttPlayerInfo = [];
+let impMyRole = null;
+let decHintsLeft = 3;
+
+// Colours for avatars
+const COLORS = ['#e94560','#533483','#00b4d8','#06d6a0','#ffd60a','#f77f00','#a663cc','#4cc9f0'];
+function playerColor(name) {
+  let h = 0; for(const c of name) h = (h*31+c.charCodeAt(0))&0xffffffff;
+  return COLORS[Math.abs(h) % COLORS.length];
+}
+function initials(name) { return name.slice(0,2).toUpperCase(); }
+
+// ══════════════════════════════════════════════════
+// SCREENS
+// ══════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ══════════════════════════════════════════════════
+// HOME
+// ══════════════════════════════════════════════════
+function goToCreate() {
+  const name = document.getElementById('home-name').value.trim();
+  if (!name) { toast('Enter your name first!', 'error'); return; }
+  myName = name;
+  showScreen('screen-create');
+}
+
+function joinRoom() {
+  const name = document.getElementById('home-name').value.trim();
+  const code = document.getElementById('home-code').value.trim().toUpperCase();
+  if (!name) { toast('Enter your name first!', 'error'); return; }
+  if (code.length !== 5) { toast('Enter a valid 5-letter room code!', 'error'); return; }
+  myName = name;
+  socket.emit('join_room', { name, code });
+}
+
+// ══════════════════════════════════════════════════
+// CREATE
+// ══════════════════════════════════════════════════
+function selectGame(el) {
+  document.querySelectorAll('#screen-create .game-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedGame = el.dataset.game;
+}
+
+function createRoom() {
+  socket.emit('create_room', { name: myName, game: selectedGame });
+}
+
+// ══════════════════════════════════════════════════
+// LOBBY
+// ══════════════════════════════════════════════════
+function copyCode() {
+  navigator.clipboard.writeText(myRoomCode).then(() => toast('Room code copied! 📋', 'success'));
+}
+
+function toggleGameSelector() {
+  const el = document.getElementById('lobby-game-selector');
+  el.classList.toggle('hidden');
+}
+
+function changeGame(el) {
+  document.querySelectorAll('#lobby-game-grid .game-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  socket.emit('change_game', { code: myRoomCode, game: el.dataset.game });
+}
+
+function startGame() {
+  socket.emit('start_game', { code: myRoomCode });
+}
+
+function leaveRoom() {
+  socket.disconnect();
+  location.reload();
+}
+
+function backToLobby() {
+  if (isHost) socket.emit('back_to_lobby', { code: myRoomCode });
+}
+
+function renderLobby(room) {
+  myRoomCode = room.code;
+  isHost = room.hostId === socket.id;
+  currentPlayers = room.players;
+
+  document.getElementById('lobby-code').textContent = room.code;
+  document.getElementById('lobby-player-count').textContent = `${room.players.length} player${room.players.length !== 1 ? 's' : ''}`;
+
+  const gameNames = { tictactoe:'Tic-Tac-Toe ❌⭕', imposter:'Find the Imposter 🕵️', decode:'Decode Message 🔐', truthordare:'Truth or Dare 🎯' };
+  document.getElementById('lobby-game-name').textContent = 'Game: ' + (gameNames[room.game] || room.game);
+
+  const list = document.getElementById('player-list');
+  list.innerHTML = room.players.map(p => `
+    <div class="player-chip">
+      <div class="avatar" style="background:${playerColor(p.name)}">${initials(p.name)}</div>
+      <span class="pname">${p.name}${p.id === socket.id ? ' (you)' : ''}</span>
+      <span class="score-badge">${p.score} pts</span>
+      ${p.id === room.hostId ? '<span class="host-badge">HOST</span>' : ''}
+    </div>`).join('');
+
+  document.getElementById('host-controls').classList.toggle('hidden', !isHost);
+  document.getElementById('guest-controls').classList.toggle('hidden', isHost);
+  document.getElementById('lobby-game-selector').classList.toggle('hidden', !isHost);
+
+  // Sync lobby game selector
+  document.querySelectorAll('#lobby-game-grid .game-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.game === room.game);
+  });
+}
+
+// ══════════════════════════════════════════════════
+// TIC-TAC-TOE
+// ══════════════════════════════════════════════════
+function renderTTTBoard(board, turn, winner) {
+  const el = document.getElementById('ttt-board');
+  el.innerHTML = board.map((cell, i) => {
+    let cls = 'ttt-cell';
+    if (cell) cls += ' filled ' + cell.toLowerCase();
+    return `<div class="${cls}" onclick="tttClick(${i})">${cell === 'X' ? '✕' : cell === 'O' ? '◯' : ''}</div>`;
+  }).join('');
+}
+
+function tttClick(i) {
+  if (!myRoomCode) return;
+  socket.emit('ttt_move', { code: myRoomCode, index: i });
+}
+
+function rematchTTT() {
+  socket.emit('ttt_rematch', { code: myRoomCode });
+}
+
+function renderTTTScores(players) {
+  const me = players.find(p => p.id === socket.id);
+  document.getElementById('ttt-scores').innerHTML = players.map(p =>
+    `<div class="score-row ${p.id === socket.id ? 'me' : ''}">
+      <span class="score-name">${p.name}${p.id === socket.id ? ' ★' : ''}</span>
+      <span class="score-pts">${p.score}</span>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════
+// IMPOSTER
+// ══════════════════════════════════════════════════
+function sendClue() {
+  const input = document.getElementById('imp-clue-input');
+  const clue = input.value.trim();
+  if (!clue) { toast('Type a clue first!', 'error'); return; }
+  socket.emit('imposter_clue', { code: myRoomCode, clue });
+  input.value = '';
+}
+
+function voteFor(name) {
+  document.querySelectorAll('.vote-btn').forEach(b => b.classList.add('voted'));
+  socket.emit('imposter_vote', { code: myRoomCode, votedName: name });
+}
+
+function nextImposterRound() {
+  socket.emit('imposter_next_round', { code: myRoomCode });
+}
+
+function renderImpScores(players) {
+  document.getElementById('imp-scores').innerHTML = players.map(p =>
+    `<div class="score-row ${p.id === socket.id ? 'me' : ''}">
+      <span class="score-name">${p.name}${p.id === socket.id ? ' ★' : ''}</span>
+      <span class="score-pts">${p.score}</span>
+    </div>`).join('');
+}
+
+function renderClues(clues, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = clues.map(c =>
+    `<div class="clue-item"><span class="cn">${c.name}:</span><span class="ct">"${c.clue}"</span></div>`
+  ).join('');
+}
+
+// ══════════════════════════════════════════════════
+// DECODE
+// ══════════════════════════════════════════════════
+let decMessage = '';
+let decRevealPositions = [];
+
+function renderDecodeReveal(message, revealed) {
+  const row = document.getElementById('dec-reveal-row');
+  row.innerHTML = message.split('').map((c, i) => {
+    if (c === ' ') return `<div class="reveal-letter space"></div>`;
+    const isRev = revealed.includes(i);
+    return `<div class="reveal-letter ${isRev ? 'revealed' : ''}">${isRev ? c : '?'}</div>`;
+  }).join('');
+}
+
+function sendDecodeGuess() {
+  const input = document.getElementById('dec-guess-input');
+  const guess = input.value.trim();
+  if (!guess) { toast('Type your guess first!', 'error'); return; }
+  socket.emit('decode_guess', { code: myRoomCode, guess });
+  input.value = '';
+}
+
+function requestHint() {
+  socket.emit('decode_hint', { code: myRoomCode });
+}
+
+function nextDecodeRound() {
+  socket.emit('decode_next_round', { code: myRoomCode });
+}
+
+function renderDecScores(players) {
+  document.getElementById('dec-scores').innerHTML = players.map(p =>
+    `<div class="score-row ${p.id === socket.id ? 'me' : ''}">
+      <span class="score-name">${p.name}${p.id === socket.id ? ' ★' : ''}</span>
+      <span class="score-pts">${p.score}</span>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════
+// TRUTH OR DARE
+// ══════════════════════════════════════════════════
+function pickTOD(choice) {
+  socket.emit('tod_pick', { code: myRoomCode, choice });
+}
+
+function nextTOD() {
+  socket.emit('tod_next', { code: myRoomCode });
+}
+
+function spinTOD() {
+  const btn = document.getElementById('tod-spin-btn');
+  btn.classList.add('spinning');
+  setTimeout(() => btn.classList.remove('spinning'), 700);
+  socket.emit('tod_spin', { code: myRoomCode });
+}
+
+function renderTODPlayers(players, currentId) {
+  document.getElementById('tod-player-list').innerHTML = players.map(p =>
+    `<div class="score-row ${p.id === socket.id ? 'me' : ''} ${p.id === currentId ? 'text-yellow' : ''}">
+      <span class="score-name">${p.id === currentId ? '▶ ' : ''}${p.name}${p.id === socket.id ? ' ★' : ''}</span>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════
+// SOCKET EVENTS
+// ══════════════════════════════════════════════════
+socket.on('connect', () => { myId = socket.id; });
+
+socket.on('room_created', ({ code }) => {
+  myRoomCode = code;
+  isHost = true;
+  showScreen('screen-lobby');
+});
+
+socket.on('room_joined', ({ code }) => {
+  myRoomCode = code;
+  isHost = false;
+  showScreen('screen-lobby');
+});
+
+socket.on('room_update', (room) => {
+  renderLobby(room);
+});
+
+socket.on('lobby_reset', () => {
+  showScreen('screen-lobby');
+});
+
+socket.on('player_left', ({ name, players, newHostId }) => {
+  toast(`${name} left the room`, 'error');
+  currentPlayers = players;
+  if (newHostId === socket.id) { isHost = true; toast('You are now the host!', 'success'); }
+});
+
+socket.on('error_msg', (msg) => {
+  toast(msg, 'error');
+});
+
+// ── TTT Events ──
+socket.on('ttt_start', ({ board, players, turn, scores }) => {
+  tttPlayerInfo = players;
+  showScreen('screen-ttt');
+  document.getElementById('ttt-room-label').textContent = `Room: ${myRoomCode}`;
+  document.getElementById('ttt-result-area').classList.add('hidden');
+
+  const isPlayer = players.some(p => p.id === socket.id);
+  document.getElementById('ttt-spectator').classList.toggle('hidden', isPlayer);
+
+  document.getElementById('ttt-players').innerHTML = players.map(p =>
+    `<div class="ttt-player-card ${p.symbol.toLowerCase()} ${turn === p.symbol ? 'active' : ''}">
+      <div class="ttt-symbol">${p.symbol === 'X' ? '✕' : '◯'}</div>
+      <div style="font-weight:700;font-size:.9rem;">${p.name}${p.id===socket.id?' (you)':''}</div>
+    </div>`).join('');
+
+  const curPlayer = players.find(p => p.symbol === turn);
+  const isMyTurn = curPlayer?.id === socket.id;
+  document.getElementById('ttt-turn-msg').textContent = isMyTurn ? '🎮 Your turn!' : `⏳ ${curPlayer?.name}'s turn`;
+  renderTTTBoard(board, turn, null);
+  renderTTTScores(scores);
+});
+
+socket.on('ttt_update', ({ board, turn, winner, winnerName, scores }) => {
+  renderTTTBoard(board, turn, winner);
+  renderTTTScores(scores);
+
+  if (winner) {
+    const resultArea = document.getElementById('ttt-result-area');
+    const msg = document.getElementById('ttt-result-msg');
+    resultArea.classList.remove('hidden');
+    if (winner === 'draw') {
+      msg.textContent = "🤝 It's a Draw!";
+      msg.style.color = 'var(--yellow)';
+    } else {
+      const isWinner = scores.find(p => p.name === winnerName)?.id === socket.id;
+      msg.textContent = isWinner ? `🎉 You win!` : `🏆 ${winnerName} wins!`;
+      msg.style.color = isWinner ? 'var(--green)' : 'var(--accent)';
+    }
+    document.getElementById('ttt-host-btns').classList.toggle('hidden', !isHost);
+    document.getElementById('ttt-guest-btns').classList.toggle('hidden', isHost);
+    document.getElementById('ttt-turn-msg').textContent = winner === 'draw' ? "It's a draw!" : `${winnerName} wins! 🎉`;
+  } else {
+    const curPlayer = tttPlayerInfo.find(p => p.symbol === turn);
+    const isMyTurn = curPlayer?.id === socket.id;
+    document.getElementById('ttt-turn-msg').textContent = isMyTurn ? '🎮 Your turn!' : `⏳ ${curPlayer?.name}'s turn`;
+
+    // Update active highlights
+    document.querySelectorAll('.ttt-player-card').forEach(c => {
+      const sym = c.classList.contains('x') ? 'X' : 'O';
+      c.classList.toggle('active', sym === turn);
+    });
+  }
+});
+
+// ── Imposter Events ──
+socket.on('imposter_role', ({ word, category, isImposter, players }) => {
+  impMyRole = { word, category, isImposter };
+  showScreen('screen-imposter');
+  document.getElementById('imp-room-label').textContent = `Room: ${myRoomCode}`;
+  renderImpScores(players);
+
+  // Hide all phases
+  ['imp-role','imp-clue-phase','imp-vote-phase','imp-reveal'].forEach(id =>
+    document.getElementById(id).classList.add('hidden'));
+
+  const roleEl = document.getElementById('imp-role');
+  roleEl.classList.remove('hidden');
+  document.getElementById('imp-role-badge').className = `role-badge ${isImposter ? 'imposter' : 'crewmate'}`;
+  document.getElementById('imp-role-badge').textContent = isImposter ? '🎭 Imposter' : '✅ Crewmate';
+  document.getElementById('imp-category').textContent = `Category: ${category}`;
+  document.getElementById('imp-word').textContent = word;
+  document.getElementById('imp-tip').textContent = isImposter
+    ? '⚠️ You have a DIFFERENT word! Blend in and don\'t get caught!'
+    : '✅ Give a clue that only someone who knows this word would give.';
+});
+
+socket.on('imposter_clue_phase', ({ clues, currentPlayer, currentPlayerId }) => {
+  ['imp-role','imp-vote-phase','imp-reveal'].forEach(id =>
+    document.getElementById(id).classList.add('hidden'));
+  document.getElementById('imp-clue-phase').classList.remove('hidden');
+  renderClues(clues, 'imp-clue-list');
+
+  const isMyTurn = currentPlayerId === socket.id;
+  document.getElementById('imp-your-turn').classList.toggle('hidden', !isMyTurn);
+  document.getElementById('imp-waiting-turn').classList.toggle('hidden', isMyTurn);
+  document.getElementById('imp-waiting-name').textContent = currentPlayer;
+  if (isMyTurn) document.getElementById('imp-clue-input').focus();
+});
+
+socket.on('imposter_vote_phase', ({ clues, players }) => {
+  ['imp-role','imp-clue-phase','imp-reveal'].forEach(id =>
+    document.getElementById(id).classList.add('hidden'));
+  document.getElementById('imp-vote-phase').classList.remove('hidden');
+  renderClues(clues, 'imp-vote-clue-list');
+  const grid = document.getElementById('imp-vote-grid');
+  grid.innerHTML = players.map(p =>
+    p.id === socket.id ? '' :
+    `<div class="vote-btn" onclick="voteFor('${p.name}')">${p.name}</div>`
+  ).join('');
+  document.getElementById('imp-vote-count').textContent = 'Cast your vote!';
+});
+
+socket.on('imposter_vote_update', ({ votes, totalVotes, needed }) => {
+  document.getElementById('imp-vote-count').textContent = `${totalVotes}/${needed} votes cast`;
+});
+
+socket.on('imposter_reveal', ({ imposterName, word, imposterWord, category, caught, mostVoted, tally, scores }) => {
+  ['imp-role','imp-clue-phase','imp-vote-phase'].forEach(id =>
+    document.getElementById(id).classList.add('hidden'));
+  document.getElementById('imp-reveal').classList.remove('hidden');
+
+  const card = document.getElementById('imp-reveal-card');
+  card.className = `reveal-card ${caught ? 'caught' : 'escaped'}`;
+  document.getElementById('imp-reveal-emoji').textContent = caught ? '🎉' : '😈';
+  const res = document.getElementById('imp-result-big');
+  res.textContent = caught ? 'Imposter Caught!' : 'Imposter Escaped!';
+  res.className = `result-big ${caught ? 'caught' : 'escaped'}`;
+  document.getElementById('imp-result-desc').textContent =
+    caught
+      ? `${mostVoted} was voted out — they were the imposter!`
+      : `${imposterName} escaped! Everyone voted for ${mostVoted} instead.`;
+  document.getElementById('imp-reveal-word').textContent = word;
+  document.getElementById('imp-reveal-impword').textContent = `Imposter's word: ${imposterWord}`;
+  renderImpScores(scores);
+
+  document.getElementById('imp-host-next').classList.toggle('hidden', !isHost);
+  document.getElementById('imp-guest-next').classList.toggle('hidden', isHost);
+});
+
+// ── Decode Events ──
+socket.on('decode_start', ({ encoded, hint, players }) => {
+  showScreen('screen-decode');
+  decMessage = '';
+  decRevealPositions = [];
+  decHintsLeft = 3;
+  document.getElementById('dec-room-label').textContent = `Room: ${myRoomCode}`;
+  document.getElementById('dec-encoded').textContent = encoded;
+  document.getElementById('dec-hint').textContent = `Hint: ${hint}`;
+  document.getElementById('dec-guess-list').innerHTML = '';
+  document.getElementById('dec-solved-panel').classList.add('hidden');
+  document.getElementById('dec-guess-input').disabled = false;
+  document.getElementById('dec-reveal-row').innerHTML = '';
+  document.getElementById('dec-hints-left').textContent = 3;
+  document.getElementById('dec-host-hint-btn').classList.toggle('hidden', !isHost);
+  renderDecScores(players);
+});
+
+socket.on('decode_wrong_guess', ({ guesser, guess, guesses }) => {
+  const list = document.getElementById('dec-guess-list');
+  list.innerHTML = guesses.map(g =>
+    `<div class="guess-item wrong"><span class="gn">${g.name}:</span><span class="gv">${g.guess}</span> ✗</div>`
+  ).join('');
+  list.scrollTop = list.scrollHeight;
+});
+
+socket.on('decode_hint_given', ({ hint, revealPositions, message, hintsUsed }) => {
+  decMessage = message;
+  decRevealPositions = revealPositions;
+  decHintsLeft = 3 - hintsUsed;
+  document.getElementById('dec-hints-left').textContent = decHintsLeft;
+  renderDecodeReveal(message, revealPositions);
+  if (decHintsLeft <= 0) document.getElementById('dec-host-hint-btn').classList.add('hidden');
+  toast(`💡 Hint ${hintsUsed}/3 revealed!`, 'success');
+});
+
+socket.on('decode_solved', ({ solver, message, scores, guesses }) => {
+  document.getElementById('dec-guess-input').disabled = true;
+  const list = document.getElementById('dec-guess-list');
+  list.innerHTML = guesses.map(g =>
+    `<div class="guess-item ${g.guess === message ? '' : 'wrong'}"><span class="gn">${g.name}:</span><span class="gv">${g.guess}</span> ${g.guess === message ? '✓' : '✗'}</div>`
+  ).join('');
+  const panel = document.getElementById('dec-solved-panel');
+  panel.classList.remove('hidden');
+  document.getElementById('dec-solver-name').textContent = solver === (currentPlayers.find(p=>p.id===socket.id)?.name) ? '🌟 You solved it!' : `${solver} cracked the code!`;
+  document.getElementById('dec-host-next').classList.toggle('hidden', !isHost);
+  document.getElementById('dec-guest-next').classList.toggle('hidden', isHost);
+  renderDecScores(scores);
+  // Reveal full message
+  if (message) {
+    const arr = [];
+    for(let i=0;i<message.length;i++) if(message[i]!==' ') arr.push(i);
+    renderDecodeReveal(message, arr);
+  }
+});
+
+// ── Truth or Dare Events ──
+socket.on('tod_start', ({ players, currentPlayerId, currentPlayerName }) => {
+  showScreen('screen-tod');
+  document.getElementById('tod-room-label').textContent = `Room: ${myRoomCode}`;
+  renderTODPlayers(players, currentPlayerId);
+  document.getElementById('tod-player-name').textContent = currentPlayerName;
+  const isMe = currentPlayerId === socket.id;
+  document.getElementById('tod-prompt').textContent = isMe ? "It's your turn — choose!" : `${currentPlayerName} is choosing...`;
+  document.getElementById('tod-choices').classList.toggle('hidden', !isMe);
+  document.getElementById('tod-content-card').classList.add('hidden');
+  document.getElementById('tod-next-btn').style.display = 'none';
+  if (isHost) document.getElementById('tod-back-btn').style.display = 'block';
+  currentPlayers = players;
+});
+
+socket.on('tod_turn', ({ currentPlayerId, currentPlayerName, players, spun }) => {
+  currentPlayers = players;
+  renderTODPlayers(players, currentPlayerId);
+  document.getElementById('tod-player-name').textContent = currentPlayerName;
+  const isMe = currentPlayerId === socket.id;
+  document.getElementById('tod-prompt').textContent = isMe ? "It's your turn — choose!" : `${currentPlayerName} is choosing...`;
+  document.getElementById('tod-choices').classList.toggle('hidden', !isMe);
+  document.getElementById('tod-content-card').classList.add('hidden');
+  document.getElementById('tod-next-btn').style.display = 'none';
+  if (spun) toast(`🎲 Spinner landed on ${currentPlayerName}!`, 'success');
+});
+
+socket.on('tod_show', ({ playerName, choice, content }) => {
+  document.getElementById('tod-choices').classList.add('hidden');
+  const card = document.getElementById('tod-content-card');
+  card.classList.remove('hidden', 'truth', 'dare');
+  card.classList.add(choice);
+  document.getElementById('tod-type-label').textContent = choice.toUpperCase();
+  document.getElementById('tod-content-text').textContent = content;
+  document.getElementById('tod-prompt').textContent = `${playerName} chose ${choice}!`;
+  document.getElementById('tod-next-btn').style.display = 'block';
+});
+
+// ══════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════
+function toast(msg, type = '') {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3100);
+}
+
+// ══════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ══════════════════════════════════════════════════
+document.getElementById('home-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') goToCreate();
+});
+document.getElementById('home-code').addEventListener('keydown', e => {
+  if (e.key === 'Enter') joinRoom();
+});
+
+// Uppercase room code
+document.getElementById('home-code').addEventListener('input', function() {
+  this.value = this.value.toUpperCase();
+});
+</script>
+</body>
+</html>
