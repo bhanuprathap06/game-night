@@ -2,1115 +2,1472 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>🎮 Game Night — Multiplayer Games</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Game Night — Multiplayer</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="/socket.io/socket.io.js"></script>
 <style>
+/* ══════════════════════════════════════════════
+   VARIABLES & RESET
+══════════════════════════════════════════════ */
 :root {
-  --bg: #0f0f1a;
-  --surface: #1a1a2e;
-  --card: #16213e;
-  --border: #0f3460;
-  --accent: #e94560;
-  --accent2: #533483;
-  --accent3: #00b4d8;
-  --green: #06d6a0;
-  --yellow: #ffd60a;
-  --text: #eaeaea;
-  --muted: #8888aa;
-  --radius: 16px;
-  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --bg:        #04040f;
+  --s0:        rgba(255,255,255,0.025);
+  --s1:        rgba(255,255,255,0.05);
+  --s2:        rgba(255,255,255,0.08);
+  --border:    rgba(255,255,255,0.08);
+  --border2:   rgba(255,255,255,0.14);
+  --purple:    #8B5CF6;
+  --cyan:      #06B6D4;
+  --pink:      #EC4899;
+  --green:     #10B981;
+  --yellow:    #F59E0B;
+  --red:       #EF4444;
+  --text:      #F1F5F9;
+  --muted:     #64748B;
+  --r:         20px;
+  --r2:        28px;
+  --blur:      backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
 }
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+  line-height:1.6;
+}
 
-/* ── Starfield Background ── */
-body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 50%, rgba(83,52,131,0.15) 0%, transparent 50%),radial-gradient(ellipse at 80% 20%, rgba(233,69,96,0.1) 0%, transparent 40%);pointer-events:none;}
+/* ══════════════════════════════════════════════
+   ANIMATED BACKGROUND
+══════════════════════════════════════════════ */
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+.bg-orbs{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.18;animation:orbFloat 12s ease-in-out infinite;}
+.orb1{width:600px;height:600px;background:var(--purple);top:-200px;left:-200px;animation-delay:0s;}
+.orb2{width:500px;height:500px;background:var(--cyan);bottom:-150px;right:-100px;animation-delay:-4s;}
+.orb3{width:400px;height:400px;background:var(--pink);top:40%;left:50%;animation-delay:-8s;}
+@keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(30px,-30px) scale(1.05);}66%{transform:translate(-20px,20px) scale(.97);}}
+.grid-overlay{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(139,92,246,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,.04) 1px,transparent 1px);
+  background-size:60px 60px;}
 
-/* ── Layout ── */
-.screen{display:none;min-height:100vh;padding:20px;animation:fadeIn .4s ease;}
-.screen.active{display:flex;flex-direction:column;align-items:center;justify-content:center;}
-@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+/* ══════════════════════════════════════════════
+   SCREENS & TRANSITIONS
+══════════════════════════════════════════════ */
+.screen{
+  display:none;position:relative;z-index:1;
+  min-height:100vh;padding:24px 16px 40px;
+  align-items:center;justify-content:center;flex-direction:column;
+  animation:screenIn .45s cubic-bezier(0.16,1,0.3,1) both;
+}
+.screen.active{display:flex;}
+@keyframes screenIn{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
 
-/* ── Header ── */
-.logo{text-align:center;margin-bottom:32px;}
-.logo h1{font-size:clamp(2rem,5vw,3.5rem);font-weight:900;background:linear-gradient(135deg,#e94560,#533483,#00b4d8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1px;}
-.logo p{color:var(--muted);font-size:1rem;margin-top:6px;}
+/* ══════════════════════════════════════════════
+   LOGO
+══════════════════════════════════════════════ */
+.logo{text-align:center;margin-bottom:36px;user-select:none;}
+.logo-icon{font-size:3rem;margin-bottom:10px;display:block;animation:iconBounce 3s ease-in-out infinite;}
+@keyframes iconBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+.logo h1{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:clamp(2.2rem,6vw,3.8rem);
+  font-weight:700;letter-spacing:-1.5px;
+  background:linear-gradient(135deg,#c4b5fd 0%,#818cf8 40%,#06B6D4 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;line-height:1.1;
+}
+.logo p{color:var(--muted);font-size:.95rem;margin-top:8px;font-weight:400;}
 
-/* ── Cards ── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px;width:100%;max-width:480px;box-shadow:var(--shadow);}
-.card h2{font-size:1.4rem;margin-bottom:20px;color:var(--text);}
+/* ══════════════════════════════════════════════
+   GLASS CARD
+══════════════════════════════════════════════ */
+.card{
+  background:var(--s1);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border:1px solid var(--border2);
+  border-radius:var(--r2);
+  padding:32px;
+  width:100%;max-width:480px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.04) inset,0 32px 64px rgba(0,0,0,.5);
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.03) 0%,transparent 60%);
+  pointer-events:none;border-radius:inherit;
+}
+.card h2{font-size:1.25rem;font-weight:700;margin-bottom:20px;font-family:'Space Grotesk',sans-serif;}
 
-/* ── Inputs ── */
-input,select{width:100%;background:#0d1b2a;border:2px solid var(--border);border-radius:10px;padding:14px 16px;color:var(--text);font-size:1rem;outline:none;transition:border-color .2s;}
-input:focus,select:focus{border-color:var(--accent);}
-input::placeholder{color:var(--muted);}
+/* ══════════════════════════════════════════════
+   INPUTS
+══════════════════════════════════════════════ */
 .input-group{margin-bottom:16px;}
-.input-group label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.input-group label{display:block;font-size:.72rem;font-weight:600;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.8px;}
+input,select{
+  width:100%;background:rgba(0,0,0,.3);
+  border:1.5px solid var(--border2);border-radius:14px;
+  padding:14px 18px;color:var(--text);font-size:.95rem;font-family:inherit;
+  outline:none;transition:border-color .2s,box-shadow .2s;
+  -webkit-appearance:none;
+}
+input:focus,select:focus{
+  border-color:var(--purple);
+  box-shadow:0 0 0 3px rgba(139,92,246,.15);
+}
+input::placeholder{color:var(--muted);}
+.code-input{text-transform:uppercase;letter-spacing:5px;font-family:'Space Grotesk',sans-serif;font-size:1.2rem;text-align:center;}
 
-/* ── Buttons ── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 28px;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s;text-decoration:none;width:100%;}
-.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(233,69,96,.4);}
-.btn-secondary{background:var(--surface);border:2px solid var(--border);color:var(--text);}
-.btn-secondary:hover{border-color:var(--accent3);color:var(--accent3);}
-.btn-green{background:linear-gradient(135deg,#06d6a0,#0077b6);color:#fff;}
-.btn-green:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(6,214,160,.4);}
-.btn-yellow{background:linear-gradient(135deg,#ffd60a,#f77f00);color:#111;}
+/* ══════════════════════════════════════════════
+   BUTTONS
+══════════════════════════════════════════════ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:15px 28px;border:none;border-radius:14px;
+  font-size:.95rem;font-weight:600;font-family:inherit;
+  cursor:pointer;transition:all .25s cubic-bezier(0.4,0,0.2,1);
+  width:100%;letter-spacing:.2px;position:relative;overflow:hidden;
+}
+.btn::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(rgba(255,255,255,.1),transparent);
+  opacity:0;transition:opacity .2s;border-radius:inherit;
+}
+.btn:hover::after{opacity:1;}
+.btn:active{transform:scale(.98);}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+
+.btn-primary{
+  background:linear-gradient(135deg,var(--purple),#6D28D9);
+  color:#fff;
+  box-shadow:0 0 20px rgba(139,92,246,.35),0 4px 12px rgba(0,0,0,.3);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 0 35px rgba(139,92,246,.5),0 8px 20px rgba(0,0,0,.4);}
+
+.btn-cyan{
+  background:linear-gradient(135deg,var(--cyan),#0891B2);
+  color:#fff;
+  box-shadow:0 0 20px rgba(6,182,212,.3),0 4px 12px rgba(0,0,0,.3);
+}
+.btn-cyan:hover{transform:translateY(-2px);box-shadow:0 0 35px rgba(6,182,212,.5),0 8px 20px rgba(0,0,0,.4);}
+
+.btn-green{
+  background:linear-gradient(135deg,var(--green),#059669);
+  color:#fff;
+  box-shadow:0 0 20px rgba(16,185,129,.3),0 4px 12px rgba(0,0,0,.3);
+}
+.btn-green:hover{transform:translateY(-2px);box-shadow:0 0 35px rgba(16,185,129,.5),0 8px 20px rgba(0,0,0,.4);}
+
+.btn-yellow{
+  background:linear-gradient(135deg,var(--yellow),#D97706);
+  color:#111;
+  box-shadow:0 0 20px rgba(245,158,11,.3),0 4px 12px rgba(0,0,0,.3);
+}
 .btn-yellow:hover{transform:translateY(-2px);}
-.btn-small{padding:8px 16px;font-size:.85rem;width:auto;}
-.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
-.btn-row{display:flex;gap:10px;margin-top:16px;}
+
+.btn-ghost{
+  background:var(--s1);border:1.5px solid var(--border2);color:var(--text);
+}
+.btn-ghost:hover{background:var(--s2);border-color:rgba(255,255,255,.2);}
+
+.btn-sm{padding:10px 18px;font-size:.85rem;width:auto;border-radius:10px;}
+.btn-row{display:flex;gap:10px;margin-top:12px;}
 .btn-row .btn{flex:1;}
 
-/* ── Divider ── */
-.divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--muted);}
+/* ══════════════════════════════════════════════
+   DIVIDER
+══════════════════════════════════════════════ */
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--muted);font-size:.8rem;}
 .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
 
-/* ── Game Picker ── */
+/* ══════════════════════════════════════════════
+   GAME PICKER
+══════════════════════════════════════════════ */
 .game-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0;}
-.game-card{background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;text-align:center;}
-.game-card:hover,.game-card.selected{border-color:var(--accent);background:rgba(233,69,96,.1);}
-.game-card .icon{font-size:2.2rem;margin-bottom:8px;}
-.game-card .name{font-weight:700;font-size:.95rem;}
-.game-card .desc{font-size:.75rem;color:var(--muted);margin-top:4px;}
+.game-card{
+  background:var(--s0);border:1.5px solid var(--border);
+  border-radius:18px;padding:18px 14px;cursor:pointer;
+  transition:all .25s cubic-bezier(0.4,0,0.2,1);text-align:center;
+  position:relative;overflow:hidden;
+}
+.game-card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(139,92,246,.12),transparent);
+  opacity:0;transition:opacity .25s;border-radius:inherit;
+}
+.game-card:hover::before,.game-card.selected::before{opacity:1;}
+.game-card:hover,.game-card.selected{
+  border-color:rgba(139,92,246,.5);
+  box-shadow:0 0 20px rgba(139,92,246,.2);
+  transform:translateY(-2px);
+}
+.game-card.selected{background:rgba(139,92,246,.08);}
+.game-card .gc-icon{font-size:2rem;margin-bottom:8px;display:block;transition:transform .2s;}
+.game-card:hover .gc-icon{transform:scale(1.15);}
+.game-card .gc-name{font-weight:700;font-size:.88rem;font-family:'Space Grotesk',sans-serif;}
+.game-card .gc-desc{font-size:.73rem;color:var(--muted);margin-top:4px;}
 
-/* ── Lobby ── */
+/* ══════════════════════════════════════════════
+   LOBBY
+══════════════════════════════════════════════ */
 .lobby-wrap{width:100%;max-width:600px;}
-.room-header{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 28px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
-.room-code-big{font-size:2rem;font-weight:900;letter-spacing:4px;color:var(--yellow);font-family:monospace;}
-.room-code-label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
-.copy-btn{background:var(--surface);border:1px solid var(--border);color:var(--accent3);border-radius:8px;padding:8px 16px;cursor:pointer;font-size:.85rem;font-weight:600;}
-.copy-btn:hover{background:rgba(0,180,216,.15);}
 
-.player-list{display:flex;flex-direction:column;gap:8px;margin:16px 0;}
-.player-chip{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:10px;}
-.player-chip .avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1rem;flex-shrink:0;}
-.player-chip .pname{font-weight:600;}
-.player-chip .host-badge{font-size:.7rem;background:var(--yellow);color:#111;padding:2px 8px;border-radius:4px;font-weight:700;margin-left:auto;}
-.player-chip .score-badge{font-size:.8rem;color:var(--accent3);margin-left:auto;font-weight:700;}
+.room-banner{
+  background:var(--s1);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border:1px solid var(--border2);border-radius:var(--r2);
+  padding:22px 28px;margin-bottom:16px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;
+  box-shadow:0 0 40px rgba(139,92,246,.08);
+}
+.room-code-label{font-size:.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px;font-weight:600;}
+.room-code-big{
+  font-size:2rem;font-weight:700;letter-spacing:6px;
+  font-family:'Space Grotesk',sans-serif;
+  background:linear-gradient(135deg,var(--yellow),#F97316);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.copy-btn{
+  background:rgba(139,92,246,.12);border:1.5px solid rgba(139,92,246,.3);
+  color:var(--purple);border-radius:10px;padding:9px 18px;
+  cursor:pointer;font-size:.82rem;font-weight:600;font-family:inherit;
+  transition:all .2s;
+}
+.copy-btn:hover{background:rgba(139,92,246,.22);box-shadow:0 0 12px rgba(139,92,246,.3);}
+.copied{background:rgba(16,185,129,.12)!important;border-color:rgba(16,185,129,.3)!important;color:var(--green)!important;}
 
-.waiting-msg{text-align:center;color:var(--muted);padding:20px;font-size:.95rem;}
-.pulse{animation:pulse 2s infinite;}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.player-list-lobby{display:flex;flex-direction:column;gap:8px;margin:16px 0;}
+.player-chip{
+  background:var(--s0);border:1px solid var(--border);border-radius:12px;
+  padding:12px 16px;display:flex;align-items:center;gap:12px;
+  transition:all .2s;
+}
+.player-chip:hover{background:var(--s1);}
+.avatar{
+  width:38px;height:38px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:.88rem;flex-shrink:0;letter-spacing:.5px;
+  border:2px solid rgba(255,255,255,.1);
+}
+.player-chip .p-name{font-weight:600;font-size:.92rem;flex:1;}
+.player-chip .p-me{font-size:.72rem;color:var(--muted);}
+.host-badge{
+  font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  background:linear-gradient(135deg,var(--yellow),#F97316);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  border:1px solid rgba(245,158,11,.3);padding:3px 9px;border-radius:6px;
+  background-color:rgba(245,158,11,.08);
+}
+.score-chip{font-size:.78rem;color:var(--cyan);font-weight:700;margin-left:auto;}
 
-/* ── Game Containers ── */
-.game-wrap{width:100%;max-width:700px;}
-.game-header{text-align:center;margin-bottom:24px;}
-.game-header h2{font-size:1.6rem;font-weight:900;}
-.game-header p{color:var(--muted);margin-top:4px;}
-
-/* ── Tic Tac Toe ── */
-.ttt-board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:360px;margin:0 auto 24px;}
-.ttt-cell{aspect-ratio:1;background:var(--card);border:2px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:3rem;font-weight:900;cursor:pointer;transition:all .2s;user-select:none;}
-.ttt-cell:hover:not(.filled){background:rgba(233,69,96,.15);border-color:var(--accent);}
-.ttt-cell.x{color:#e94560;border-color:#e94560;}
-.ttt-cell.o{color:#00b4d8;border-color:#00b4d8;}
-.ttt-cell.filled{cursor:default;}
-.ttt-cell.win-cell{background:rgba(255,214,10,.15);border-color:var(--yellow);}
-.ttt-status{text-align:center;margin-bottom:20px;}
-.ttt-turn{font-size:1.1rem;font-weight:700;padding:12px 24px;border-radius:10px;background:var(--surface);display:inline-block;}
-.ttt-players{display:flex;gap:12px;justify-content:center;margin-bottom:20px;}
-.ttt-player-card{flex:1;max-width:160px;background:var(--surface);border:2px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
-.ttt-player-card.active{border-color:var(--accent);background:rgba(233,69,96,.1);}
-.ttt-symbol{font-size:1.8rem;font-weight:900;margin-bottom:4px;}
-.ttt-player-card.x .ttt-symbol{color:#e94560;}
-.ttt-player-card.o .ttt-symbol{color:#00b4d8;}
-.spectator-notice{text-align:center;color:var(--muted);font-size:.9rem;padding:12px;background:var(--surface);border-radius:8px;margin-bottom:16px;}
-
-/* ── Imposter ── */
-.role-reveal{text-align:center;padding:32px 24px;}
-.role-card{background:var(--card);border:2px solid var(--border);border-radius:var(--radius);padding:32px;margin:20px 0;position:relative;overflow:hidden;}
-.role-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(233,69,96,.05),transparent);pointer-events:none;}
-.role-badge{display:inline-block;padding:6px 18px;border-radius:20px;font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
-.role-badge.imposter{background:rgba(233,69,96,.2);color:#e94560;border:1px solid #e94560;}
-.role-badge.crewmate{background:rgba(6,214,160,.2);color:#06d6a0;border:1px solid #06d6a0;}
-.role-word{font-size:2.5rem;font-weight:900;margin:8px 0;}
-.role-category{color:var(--muted);font-size:.9rem;}
-.role-tip{font-size:.85rem;color:var(--muted);margin-top:12px;font-style:italic;}
-
-.clue-input-area{background:var(--card);border-radius:var(--radius);padding:24px;margin:16px 0;}
-.clue-list{display:flex;flex-direction:column;gap:8px;margin:16px 0;max-height:200px;overflow-y:auto;}
-.clue-item{background:var(--surface);border-radius:8px;padding:10px 14px;display:flex;align-items:baseline;gap:10px;}
-.clue-item .cn{font-weight:700;font-size:.85rem;color:var(--accent3);min-width:80px;}
-.clue-item .ct{font-size:.95rem;}
-
-.vote-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin:16px 0;}
-.vote-btn{background:var(--surface);border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;text-align:center;transition:all .2s;font-size:.95rem;font-weight:600;}
-.vote-btn:hover{border-color:var(--accent);background:rgba(233,69,96,.1);}
-.vote-btn.voted{border-color:var(--accent);background:rgba(233,69,96,.2);cursor:default;}
-
-.reveal-card{background:var(--card);border-radius:var(--radius);padding:28px;text-align:center;border:2px solid var(--border);}
-.reveal-card.caught{border-color:var(--green);}
-.reveal-card.escaped{border-color:var(--accent);}
-.result-big{font-size:2rem;font-weight:900;margin:12px 0;}
-.result-big.caught{color:var(--green);}
-.result-big.escaped{color:var(--accent);}
-
-/* ── Decode ── */
-.encoded-display{background:var(--card);border-radius:var(--radius);padding:28px;text-align:center;margin:16px 0;border:2px solid var(--border);}
-.encoded-text{font-size:clamp(1.4rem,4vw,2.2rem);font-weight:900;letter-spacing:6px;font-family:monospace;color:var(--yellow);word-break:break-all;}
-.encoded-hint{font-size:.9rem;color:var(--muted);margin-top:8px;}
-.alphabet-ref{background:var(--surface);border-radius:10px;padding:16px;font-family:monospace;font-size:.8rem;color:var(--muted);margin:12px 0;line-height:1.8;}
-.reveal-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:12px 0;}
-.reveal-letter{width:36px;height:40px;background:var(--card);border:2px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:900;font-family:monospace;font-size:1.1rem;}
-.reveal-letter.revealed{border-color:var(--green);color:var(--green);}
-.reveal-letter.space{background:transparent;border-color:transparent;width:16px;}
-.guess-list{max-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin:12px 0;}
-.guess-item{background:var(--surface);border-radius:6px;padding:8px 12px;font-size:.85rem;display:flex;gap:8px;}
-.guess-item .gn{color:var(--accent3);font-weight:700;}
-.guess-item .gv{font-family:monospace;}
-.guess-item.wrong .gv{color:var(--accent);text-decoration:line-through;}
-
-/* ── Truth or Dare ── */
-.tod-wheel{display:flex;flex-direction:column;align-items:center;padding:24px;}
-.tod-spotlight{background:var(--card);border:2px solid var(--border);border-radius:var(--radius);padding:32px;text-align:center;margin:16px 0;width:100%;}
-.tod-name{font-size:2rem;font-weight:900;color:var(--yellow);}
-.tod-prompt{font-size:1rem;color:var(--muted);margin-top:4px;}
-.tod-choices{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0;width:100%;}
-.tod-choice{padding:20px;border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;text-align:center;transition:all .2s;background:var(--surface);}
-.tod-choice.truth:hover{border-color:var(--accent3);background:rgba(0,180,216,.1);}
-.tod-choice.dare:hover{border-color:var(--accent);background:rgba(233,69,96,.1);}
-.tod-choice .ci{font-size:2.5rem;display:block;margin-bottom:8px;}
-.tod-choice .cl{font-size:1.1rem;font-weight:700;}
-.tod-content-card{background:var(--card);border-radius:var(--radius);padding:24px;margin:16px 0;width:100%;border:2px solid var(--border);}
-.tod-content-card.truth{border-color:var(--accent3);}
-.tod-content-card.dare{border-color:var(--accent);}
-.tod-type{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
-.tod-content-card.truth .tod-type{color:var(--accent3);}
-.tod-content-card.dare .tod-type{color:var(--accent);}
-.tod-text{font-size:1.15rem;line-height:1.6;}
-.spin-btn{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;border:none;border-radius:50%;width:80px;height:80px;font-size:2rem;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;}
-.spin-btn:hover{transform:rotate(20deg) scale(1.1);}
-.spinning{animation:spin 0.6s ease-out;}
-@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(720deg)}}
-
-/* ── Players Sidebar (in-game) ── */
-.game-layout{display:flex;gap:16px;width:100%;max-width:800px;align-items:flex-start;}
-.game-main{flex:1;min-width:0;}
-.game-sidebar{width:180px;flex-shrink:0;}
-.score-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
-.score-panel h3{font-size:.8rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;}
-.score-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.9rem;}
-.score-row:last-child{border:none;}
-.score-pts{font-weight:900;color:var(--yellow);}
-.score-row.me .score-name{color:var(--accent3);}
-
-/* ── Toast ── */
-.toast-wrap{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none;}
-.toast{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:.9rem;animation:slideIn .3s ease,fadeOut .3s ease 2.7s forwards;max-width:300px;}
-.toast.error{border-color:var(--accent);background:rgba(233,69,96,.15);}
-.toast.success{border-color:var(--green);background:rgba(6,214,160,.15);}
-@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-@keyframes fadeOut{to{opacity:0;transform:translateX(100%)}}
-
-/* ── Scoreboard ── */
-.scoreboard{background:var(--card);border-radius:var(--radius);padding:24px;width:100%;max-width:420px;border:1px solid var(--border);}
-.score-entry{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);}
-.score-entry:last-child{border:none;}
-.score-rank{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.85rem;flex-shrink:0;}
-.rank-1{background:var(--yellow);color:#111;}
-.rank-2{background:#c0c0c0;color:#111;}
-.rank-3{background:#cd7f32;color:#fff;}
-.rank-n{background:var(--surface);color:var(--muted);}
-.score-entry .sname{flex:1;font-weight:600;}
-.score-entry .spts{font-size:1.2rem;font-weight:900;color:var(--yellow);}
-
-/* ── Responsive ── */
-@media(max-width:600px){
-  .game-layout{flex-direction:column;}
-  .game-sidebar{width:100%;}
-  .game-grid{grid-template-columns:1fr 1fr;}
-  .ttt-board{max-width:300px;}
-  .ttt-cell{font-size:2.2rem;}
-  .tod-choices{grid-template-columns:1fr 1fr;}
+.lobby-game-tag{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25);
+  border-radius:8px;padding:5px 12px;font-size:.78rem;font-weight:600;color:var(--purple);
+}
+.player-count-tag{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.2);
+  border-radius:8px;padding:5px 12px;font-size:.78rem;font-weight:600;color:var(--cyan);
 }
 
-/* ── Misc utils ── */
-.mt-12{margin-top:12px;}
-.mt-16{margin-top:16px;}
-.mt-20{margin-top:20px;}
-.text-center{text-align:center;}
-.text-muted{color:var(--muted);}
-.text-green{color:var(--green);}
-.text-yellow{color:var(--yellow);}
-.text-red{color:var(--accent);}
-.hidden{display:none!important;}
-.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:700;}
-.badge-blue{background:rgba(0,180,216,.2);color:var(--accent3);}
-.waiting-dots::after{content:'...';animation:dots 1.5s infinite;}
-@keyframes dots{0%{content:'.'}33%{content:'..'}66%{content:'...'}100%{content:'.'}}
+/* ══════════════════════════════════════════════
+   GAME LAYOUT (main + sidebar)
+══════════════════════════════════════════════ */
+.game-wrap{width:100%;max-width:820px;}
+.game-layout{display:flex;gap:18px;width:100%;align-items:flex-start;}
+.game-main{flex:1;min-width:0;}
+.game-sidebar{width:200px;flex-shrink:0;}
+@media(max-width:640px){
+  .game-layout{flex-direction:column;}
+  .game-sidebar{width:100%;}
+}
+
+.game-header{margin-bottom:22px;}
+.game-header h2{
+  font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:700;
+  background:linear-gradient(135deg,var(--text),rgba(255,255,255,.6));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.game-header p{color:var(--muted);font-size:.82rem;margin-top:4px;}
+
+.score-panel{
+  background:var(--s1);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--border2);border-radius:20px;padding:18px;
+  position:sticky;top:20px;
+}
+.score-panel-title{font-size:.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700;margin-bottom:12px;}
+.score-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.85rem;}
+.score-row:last-child{border:none;}
+.score-name{font-weight:500;color:rgba(255,255,255,.7);}
+.score-pts{font-weight:800;color:var(--yellow);}
+.score-row.me-row .score-name{color:var(--cyan);}
+.score-row.active-row .score-name{color:var(--purple);}
+
+/* ══════════════════════════════════════════════
+   TIC-TAC-TOE
+══════════════════════════════════════════════ */
+.ttt-wrapper{display:flex;flex-direction:column;align-items:center;}
+.ttt-matchup{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:20px;width:100%;}
+.ttt-player-card{
+  flex:1;max-width:150px;
+  background:var(--s1);border:1.5px solid var(--border2);border-radius:16px;
+  padding:14px 12px;text-align:center;transition:all .3s;
+}
+.ttt-player-card.active{
+  border-color:rgba(139,92,246,.6);
+  box-shadow:0 0 20px rgba(139,92,246,.25);
+  background:rgba(139,92,246,.08);
+}
+.ttt-player-card.x-card.active{border-color:rgba(239,68,68,.5);box-shadow:0 0 20px rgba(239,68,68,.2);background:rgba(239,68,68,.06);}
+.ttt-player-card.o-card.active{border-color:rgba(6,182,212,.5);box-shadow:0 0 20px rgba(6,182,212,.2);background:rgba(6,182,212,.06);}
+.ttt-sym{font-size:1.6rem;font-weight:900;margin-bottom:5px;line-height:1;}
+.x-card .ttt-sym{color:#EF4444;text-shadow:0 0 12px rgba(239,68,68,.5);}
+.o-card .ttt-sym{color:#06B6D4;text-shadow:0 0 12px rgba(6,182,212,.5);}
+.ttt-pname{font-size:.8rem;font-weight:700;word-break:break-word;}
+.ttt-vs{font-size:.85rem;color:var(--muted);font-weight:700;}
+
+.ttt-status-bar{
+  background:var(--s0);border:1px solid var(--border);border-radius:12px;
+  padding:12px 20px;text-align:center;font-size:.9rem;font-weight:600;
+  margin-bottom:18px;width:100%;
+}
+
+.ttt-board{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:10px;width:100%;max-width:320px;margin:0 auto 22px;
+}
+.ttt-cell{
+  aspect-ratio:1;background:var(--s0);
+  border:1.5px solid var(--border2);border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:2.5rem;font-weight:900;cursor:pointer;
+  transition:all .2s cubic-bezier(0.4,0,0.2,1);user-select:none;
+}
+.ttt-cell:hover:not(.filled):not(.disabled){
+  background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.4);
+  transform:scale(1.04);box-shadow:0 0 14px rgba(139,92,246,.2);
+}
+.ttt-cell.x{color:#EF4444;border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.05);}
+.ttt-cell.o{color:#06B6D4;border-color:rgba(6,182,212,.3);background:rgba(6,182,212,.05);}
+.ttt-cell.x.win-cell{background:rgba(239,68,68,.12);border-color:#EF4444;box-shadow:0 0 20px rgba(239,68,68,.3);}
+.ttt-cell.o.win-cell{background:rgba(6,182,212,.12);border-color:#06B6D4;box-shadow:0 0 20px rgba(6,182,212,.3);}
+.ttt-cell.filled,.ttt-cell.disabled{cursor:default;}
+
+.ttt-result{
+  text-align:center;padding:20px;background:var(--s1);border:1px solid var(--border2);
+  border-radius:20px;width:100%;margin-top:8px;
+}
+.ttt-result-emoji{font-size:2.5rem;margin-bottom:8px;}
+.ttt-result-msg{font-size:1.3rem;font-weight:800;margin-bottom:4px;font-family:'Space Grotesk',sans-serif;}
+
+.spectator-bar{
+  background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);
+  border-radius:10px;padding:10px 16px;text-align:center;
+  font-size:.82rem;color:var(--yellow);margin-bottom:14px;
+}
+
+/* ══════════════════════════════════════════════
+   IMPOSTER
+══════════════════════════════════════════════ */
+.role-reveal-card{
+  text-align:center;padding:36px 28px;
+  background:var(--s1);border:1px solid var(--border2);border-radius:var(--r2);
+  position:relative;overflow:hidden;
+}
+.role-reveal-card::before{
+  content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:radial-gradient(ellipse at 50% 0%,rgba(139,92,246,.12),transparent 70%);
+}
+.role-badge{
+  display:inline-block;padding:6px 20px;border-radius:20px;
+  font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;
+}
+.badge-imposter{background:rgba(239,68,68,.12);color:#EF4444;border:1px solid rgba(239,68,68,.3);}
+.badge-crewmate{background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.25);}
+.role-category-tag{font-size:.78rem;color:var(--muted);margin-bottom:8px;font-weight:500;}
+.role-word-big{
+  font-size:clamp(2.2rem,6vw,3.5rem);font-weight:800;font-family:'Space Grotesk',sans-serif;
+  background:linear-gradient(135deg,#fff,rgba(255,255,255,.6));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin:8px 0 12px;
+}
+.role-tip{
+  font-size:.82rem;padding:10px 16px;border-radius:10px;font-style:italic;color:var(--muted);
+  background:var(--s0);border:1px solid var(--border);
+}
+.countdown-bar{
+  height:4px;background:var(--s0);border-radius:2px;margin-top:16px;overflow:hidden;
+}
+.countdown-fill{
+  height:100%;background:linear-gradient(90deg,var(--purple),var(--cyan));
+  border-radius:2px;width:100%;
+  animation:countDown 6s linear forwards;
+}
+@keyframes countDown{from{width:100%;}to{width:0%;}}
+
+.clue-phase-card{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r2);padding:24px;margin-bottom:14px;}
+.clue-list{display:flex;flex-direction:column;gap:8px;margin:14px 0;max-height:220px;overflow-y:auto;}
+.clue-list::-webkit-scrollbar{width:4px;}
+.clue-list::-webkit-scrollbar-track{background:transparent;}
+.clue-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px;}
+.clue-item{
+  background:var(--s0);border:1px solid var(--border);border-radius:10px;
+  padding:10px 14px;display:flex;align-items:center;gap:10px;
+  animation:fadeUp .3s ease both;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.clue-who{font-size:.75rem;font-weight:700;color:var(--cyan);min-width:80px;}
+.clue-text{font-size:.9rem;}
+
+.your-turn-prompt{
+  background:rgba(139,92,246,.06);border:1.5px solid rgba(139,92,246,.25);
+  border-radius:16px;padding:18px;
+}
+.your-turn-label{font-size:.78rem;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+.clue-input-row{display:flex;gap:10px;}
+.clue-input-row input{flex:1;}
+.waiting-player-card{
+  background:var(--s0);border:1px solid var(--border);border-radius:12px;
+  padding:14px 18px;text-align:center;
+}
+.waiting-player-name{font-size:1.1rem;font-weight:700;color:var(--yellow);}
+
+.vote-section h3{font-size:1rem;font-weight:700;text-align:center;margin-bottom:6px;}
+.vote-instructions{font-size:.8rem;color:var(--muted);text-align:center;margin-bottom:14px;}
+.vote-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin:12px 0;}
+.vote-btn{
+  background:var(--s0);border:1.5px solid var(--border2);border-radius:12px;
+  padding:14px 10px;cursor:pointer;text-align:center;
+  transition:all .2s;font-size:.9rem;font-weight:600;font-family:inherit;color:var(--text);
+}
+.vote-btn:hover{border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.06);transform:translateY(-2px);}
+.vote-btn.voted{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.1);cursor:default;color:var(--red);}
+.vote-count{text-align:center;font-size:.82rem;color:var(--muted);margin-top:8px;}
+
+.reveal-card{
+  text-align:center;padding:32px 24px;
+  background:var(--s1);border:1.5px solid var(--border2);border-radius:var(--r2);
+}
+.reveal-card.caught{border-color:rgba(16,185,129,.4);box-shadow:0 0 30px rgba(16,185,129,.1);}
+.reveal-card.escaped{border-color:rgba(239,68,68,.4);box-shadow:0 0 30px rgba(239,68,68,.1);}
+.reveal-emoji{font-size:3.5rem;margin-bottom:12px;display:block;}
+.reveal-result{font-size:1.8rem;font-weight:800;font-family:'Space Grotesk',sans-serif;margin-bottom:6px;}
+.caught-txt{color:var(--green);}
+.escaped-txt{color:var(--red);}
+.reveal-desc{font-size:.88rem;color:var(--muted);margin-bottom:16px;}
+.reveal-words-box{
+  background:var(--s0);border:1px solid var(--border);border-radius:14px;
+  padding:16px;margin:14px 0;
+}
+.reveal-word-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:4px;}
+.reveal-word-val{font-size:1.4rem;font-weight:800;font-family:'Space Grotesk',sans-serif;}
+
+/* ══════════════════════════════════════════════
+   DECODE
+══════════════════════════════════════════════ */
+.decode-card{
+  background:var(--s1);border:1.5px solid rgba(6,182,212,.2);border-radius:var(--r2);
+  padding:28px;text-align:center;margin-bottom:14px;
+  box-shadow:0 0 30px rgba(6,182,212,.06);position:relative;overflow:hidden;
+}
+.decode-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+}
+.decode-label{font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--cyan);margin-bottom:10px;font-weight:700;}
+.encoded-text{
+  font-size:clamp(1.3rem,4vw,2rem);font-weight:800;letter-spacing:8px;
+  font-family:'Space Grotesk',monospace;color:var(--cyan);
+  word-break:break-all;line-height:1.5;
+  text-shadow:0 0 20px rgba(6,182,212,.4);
+}
+.decode-hint{font-size:.82rem;color:var(--muted);margin-top:10px;}
+
+.reveal-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:14px 0;}
+.reveal-letter{
+  width:34px;height:40px;
+  background:var(--s0);border:1.5px solid var(--border2);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-family:'Space Grotesk',monospace;font-size:1rem;
+  transition:all .3s;
+}
+.reveal-letter.shown{border-color:var(--cyan);color:var(--cyan);background:rgba(6,182,212,.08);box-shadow:0 0 8px rgba(6,182,212,.2);}
+.reveal-letter.space-gap{background:transparent;border-color:transparent;width:10px;}
+.reveal-letter.solved-letter{border-color:var(--green);color:var(--green);background:rgba(16,185,129,.08);}
+
+.guess-feed{max-height:140px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin:12px 0;}
+.guess-item{
+  background:var(--s0);border:1px solid var(--border);border-radius:8px;
+  padding:8px 14px;font-size:.82rem;display:flex;align-items:center;gap:10px;
+  animation:fadeUp .25s ease both;
+}
+.guess-who{color:var(--purple);font-weight:700;min-width:70px;}
+.guess-val{font-family:monospace;color:rgba(255,255,255,.6);}
+.guess-item.correct-guess .guess-val{color:var(--green);font-weight:700;}
+.guess-item.wrong-guess .guess-val{text-decoration:line-through;color:var(--red);}
+
+.decode-input-row{display:flex;gap:10px;margin-top:10px;}
+.decode-input-row input{flex:1;}
+.solved-overlay{
+  text-align:center;padding:22px;background:rgba(16,185,129,.06);
+  border:1.5px solid rgba(16,185,129,.25);border-radius:18px;margin-top:12px;
+}
+.solved-title{font-size:1.3rem;font-weight:800;color:var(--green);margin-bottom:4px;font-family:'Space Grotesk',sans-serif;}
+.solved-sub{font-size:.85rem;color:var(--muted);}
+
+/* ══════════════════════════════════════════════
+   TRUTH OR DARE
+══════════════════════════════════════════════ */
+.tod-wrap{display:flex;flex-direction:column;align-items:center;width:100%;}
+.tod-spotlight{
+  width:100%;background:var(--s1);border:1px solid var(--border2);
+  border-radius:var(--r2);padding:28px;text-align:center;margin-bottom:16px;
+  position:relative;overflow:hidden;
+}
+.tod-spotlight::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(236,72,153,.1),transparent 70%);
+  pointer-events:none;
+}
+.tod-spotlight-label{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;font-weight:600;}
+.tod-player-name{
+  font-size:clamp(1.6rem,5vw,2.5rem);font-weight:800;font-family:'Space Grotesk',sans-serif;
+  background:linear-gradient(135deg,var(--yellow),#F97316);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:4px;
+}
+.tod-status{font-size:.88rem;color:var(--muted);}
+
+.tod-choices{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;margin-bottom:14px;}
+.tod-choice-btn{
+  padding:24px 16px;border:1.5px solid var(--border2);border-radius:20px;
+  cursor:pointer;text-align:center;transition:all .25s cubic-bezier(0.4,0,0.2,1);
+  background:var(--s1);font-family:inherit;color:var(--text);position:relative;overflow:hidden;
+}
+.tod-choice-btn::before{
+  content:'';position:absolute;inset:0;opacity:0;transition:opacity .25s;border-radius:inherit;
+}
+.tod-choice-btn.truth-btn::before{background:linear-gradient(135deg,rgba(6,182,212,.1),transparent);}
+.tod-choice-btn.dare-btn::before{background:linear-gradient(135deg,rgba(236,72,153,.1),transparent);}
+.tod-choice-btn:hover::before{opacity:1;}
+.tod-choice-btn.truth-btn:hover{border-color:rgba(6,182,212,.5);transform:translateY(-3px);box-shadow:0 0 20px rgba(6,182,212,.2);}
+.tod-choice-btn.dare-btn:hover{border-color:rgba(236,72,153,.5);transform:translateY(-3px);box-shadow:0 0 20px rgba(236,72,153,.2);}
+.tod-ci{font-size:2.8rem;display:block;margin-bottom:8px;transition:transform .2s;}
+.tod-choice-btn:hover .tod-ci{transform:scale(1.2);}
+.tod-cl{font-size:1rem;font-weight:700;}
+
+.tod-content-reveal{
+  width:100%;border:1.5px solid var(--border2);border-radius:var(--r2);
+  padding:24px;margin-bottom:14px;position:relative;overflow:hidden;
+  animation:revealIn .4s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes revealIn{from{opacity:0;transform:scale(.96);}to{opacity:1;transform:scale(1);}}
+.tod-content-reveal.truth-reveal{
+  border-color:rgba(6,182,212,.3);background:rgba(6,182,212,.04);
+}
+.tod-content-reveal.dare-reveal{
+  border-color:rgba(236,72,153,.3);background:rgba(236,72,153,.04);
+}
+.tod-type-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+.truth-reveal .tod-type-label{color:var(--cyan);}
+.dare-reveal .tod-type-label{color:var(--pink);}
+.tod-content-text{font-size:1.05rem;line-height:1.65;font-weight:500;}
+
+.tod-bottom-row{display:flex;align-items:center;gap:12px;width:100%;}
+.spin-btn{
+  width:58px;height:58px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--pink),var(--purple));
+  border:none;cursor:pointer;font-size:1.6rem;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 20px rgba(236,72,153,.35);
+  transition:all .25s;
+}
+.spin-btn:hover{transform:rotate(30deg) scale(1.08);box-shadow:0 0 35px rgba(236,72,153,.5);}
+.spin-btn.spinning{animation:fastSpin .5s cubic-bezier(0.4,0,0.2,1);}
+@keyframes fastSpin{from{transform:rotate(0deg) scale(1);}50%{transform:rotate(360deg) scale(1.1);}to{transform:rotate(720deg) scale(1);}}
+
+.tod-player-chips{display:flex;flex-direction:column;gap:6px;}
+.tod-chip{
+  background:var(--s0);border:1px solid var(--border);border-radius:10px;
+  padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:.82rem;
+  transition:all .2s;
+}
+.tod-chip.active-chip{
+  border-color:rgba(236,72,153,.4);background:rgba(236,72,153,.06);
+}
+.tod-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+.tod-chip.active-chip .dot{background:var(--pink);box-shadow:0 0 6px var(--pink);}
+
+/* ══════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════ */
+#toast-wrap{position:fixed;bottom:28px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none;max-width:320px;}
+.toast{
+  background:rgba(15,15,30,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--border2);border-radius:14px;padding:13px 18px;font-size:.85rem;
+  animation:toastIn .35s cubic-bezier(0.16,1,0.3,1) both,toastOut .3s ease 2.8s forwards;
+  display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);
+}
+.toast.error{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.1);}
+.toast.success{border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.08);}
+.toast.info{border-color:rgba(139,92,246,.35);}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px);}to{opacity:1;transform:translateX(0);}}
+@keyframes toastOut{to{opacity:0;transform:translateX(40px);}}
+
+/* ══════════════════════════════════════════════
+   MISC
+══════════════════════════════════════════════ */
+.mt8{margin-top:8px;}.mt12{margin-top:12px;}.mt16{margin-top:16px;}.mt20{margin-top:20px;}
+.tc{text-align:center;}.hidden{display:none!important;}
+.muted{color:var(--muted);}
+.pulse{animation:pulseOp 2s ease-in-out infinite;}
+@keyframes pulseOp{0%,100%{opacity:1;}50%{opacity:.4;}}
+.dots::after{content:'...';animation:dotsAnim 1.5s infinite;}
+@keyframes dotsAnim{0%{content:'.';}33%{content:'..';}66%{content:'...';}100%{content:'.'}}
+.shimmer{
+  background:linear-gradient(90deg,var(--s0) 25%,rgba(255,255,255,.06) 50%,var(--s0) 75%);
+  background-size:200% 100%;animation:shimmer 1.5s infinite;
+}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.glow-text-purple{color:var(--purple);text-shadow:0 0 12px rgba(139,92,246,.6);}
+.glow-text-cyan{color:var(--cyan);text-shadow:0 0 12px rgba(6,182,212,.6);}
 </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════════
-  SCREEN 1 — HOME
-══════════════════════════════════════════════════ -->
-<div id="screen-home" class="screen active">
+<!-- Background -->
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+<div class="grid-overlay"></div>
+
+<!-- ═══════════════════════════════════════════
+  HOME
+═══════════════════════════════════════════ -->
+<div id="s-home" class="screen active">
   <div class="logo">
-    <h1>🎮 Game Night</h1>
-    <p>Multiplayer games for everyone — play from any device</p>
+    <span class="logo-icon">🎮</span>
+    <h1>Game Night</h1>
+    <p>Multiplayer games · Any device · Any browser</p>
   </div>
   <div class="card">
     <div class="input-group">
       <label>Your Name</label>
-      <input id="home-name" type="text" placeholder="Enter your nickname..." maxlength="20" autocomplete="off"/>
+      <input id="h-name" type="text" placeholder="Enter your nickname…" maxlength="20" autocomplete="off"/>
     </div>
-    <button class="btn btn-primary" onclick="goToCreate()">➕ Create a Room</button>
-    <div class="divider">or</div>
+    <button class="btn btn-primary" onclick="goCreate()">✦ Create a Room</button>
+    <div class="divider">or join existing</div>
     <div class="input-group">
       <label>Room Code</label>
-      <input id="home-code" type="text" placeholder="Enter 5-letter code..." maxlength="5" style="text-transform:uppercase;letter-spacing:4px;font-family:monospace;font-size:1.2rem;" autocomplete="off"/>
+      <input id="h-code" class="code-input" type="text" placeholder="XXXXX" maxlength="5" autocomplete="off"/>
     </div>
-    <button class="btn btn-green" onclick="joinRoom()">🚀 Join Room</button>
+    <button class="btn btn-cyan" onclick="doJoin()">→ Join Room</button>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════
-  SCREEN 2 — CREATE ROOM
-══════════════════════════════════════════════════ -->
-<div id="screen-create" class="screen">
-  <div class="logo"><h1>🎮 Game Night</h1></div>
+<!-- ═══════════════════════════════════════════
+  CREATE
+═══════════════════════════════════════════ -->
+<div id="s-create" class="screen">
+  <div class="logo"><h1>New Room</h1><p>Choose what you want to play</p></div>
   <div class="card">
-    <h2>Choose a Game</h2>
     <div class="game-grid">
-      <div class="game-card selected" data-game="tictactoe" onclick="selectGame(this)">
-        <div class="icon">❌⭕</div>
-        <div class="name">Tic-Tac-Toe</div>
-        <div class="desc">2 players • Classic</div>
+      <div class="game-card selected" data-game="tictactoe" onclick="pickGame(this)">
+        <span class="gc-icon">❌⭕</span>
+        <div class="gc-name">Tic-Tac-Toe</div>
+        <div class="gc-desc">2 players · Classic</div>
       </div>
-      <div class="game-card" data-game="imposter" onclick="selectGame(this)">
-        <div class="icon">🕵️</div>
-        <div class="name">Find the Imposter</div>
-        <div class="desc">3–8 players • Social</div>
+      <div class="game-card" data-game="imposter" onclick="pickGame(this)">
+        <span class="gc-icon">🕵️</span>
+        <div class="gc-name">Find Imposter</div>
+        <div class="gc-desc">3–10 · Social</div>
       </div>
-      <div class="game-card" data-game="decode" onclick="selectGame(this)">
-        <div class="icon">🔐</div>
-        <div class="name">Decode Message</div>
-        <div class="desc">2–8 players • Puzzle</div>
+      <div class="game-card" data-game="decode" onclick="pickGame(this)">
+        <span class="gc-icon">🔐</span>
+        <div class="gc-name">Decode Message</div>
+        <div class="gc-desc">2–10 · Puzzle</div>
       </div>
-      <div class="game-card" data-game="truthordare" onclick="selectGame(this)">
-        <div class="icon">🎯</div>
-        <div class="name">Truth or Dare</div>
-        <div class="desc">2–8 players • Party</div>
+      <div class="game-card" data-game="truthordare" onclick="pickGame(this)">
+        <span class="gc-icon">🔥</span>
+        <div class="gc-name">Truth or Dare</div>
+        <div class="gc-desc">2–10 · 18+ Party</div>
       </div>
     </div>
-    <button class="btn btn-primary" onclick="createRoom()">Create Room 🎲</button>
-    <div class="btn-row mt-12">
-      <button class="btn btn-secondary" onclick="showScreen('screen-home')">← Back</button>
+    <button class="btn btn-primary" onclick="doCreate()">Create Room 🎲</button>
+    <div class="btn-row mt12">
+      <button class="btn btn-ghost" onclick="show('s-home')">← Back</button>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════
-  SCREEN 3 — LOBBY
-══════════════════════════════════════════════════ -->
-<div id="screen-lobby" class="screen">
+<!-- ═══════════════════════════════════════════
+  LOBBY
+═══════════════════════════════════════════ -->
+<div id="s-lobby" class="screen">
   <div class="lobby-wrap">
-    <div class="room-header">
+    <div class="room-banner">
       <div>
-        <div class="room-code-label">Room Code — share with friends 👇</div>
+        <div class="room-code-label">Share this code with friends</div>
         <div class="room-code-big" id="lobby-code">XXXXX</div>
       </div>
-      <button class="copy-btn" onclick="copyCode()">📋 Copy Code</button>
+      <button class="copy-btn" id="copy-btn" onclick="copyCode()">📋 Copy Code</button>
     </div>
     <div class="card" style="max-width:100%">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
-        <h2 id="lobby-game-name">Game: Tic-Tac-Toe</h2>
-        <span class="badge badge-blue" id="lobby-player-count">1 player</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <span class="lobby-game-tag" id="lobby-game-tag">❌⭕ Tic-Tac-Toe</span>
+          <span class="player-count-tag" id="lobby-pc-tag">1 player</span>
+        </div>
       </div>
-      <div id="lobby-game-selector" class="hidden">
+      <!-- Host: game switcher -->
+      <div id="lobby-game-switcher" class="hidden">
         <div class="game-grid" id="lobby-game-grid">
-          <div class="game-card selected" data-game="tictactoe" onclick="changeGame(this)">
-            <div class="icon">❌⭕</div><div class="name">Tic-Tac-Toe</div>
-          </div>
-          <div class="game-card" data-game="imposter" onclick="changeGame(this)">
-            <div class="icon">🕵️</div><div class="name">Find the Imposter</div>
-          </div>
-          <div class="game-card" data-game="decode" onclick="changeGame(this)">
-            <div class="icon">🔐</div><div class="name">Decode Message</div>
-          </div>
-          <div class="game-card" data-game="truthordare" onclick="changeGame(this)">
-            <div class="icon">🎯</div><div class="name">Truth or Dare</div>
-          </div>
+          <div class="game-card selected" data-game="tictactoe" onclick="hostChangeGame(this)"><span class="gc-icon">❌⭕</span><div class="gc-name">Tic-Tac-Toe</div></div>
+          <div class="game-card" data-game="imposter" onclick="hostChangeGame(this)"><span class="gc-icon">🕵️</span><div class="gc-name">Find Imposter</div></div>
+          <div class="game-card" data-game="decode" onclick="hostChangeGame(this)"><span class="gc-icon">🔐</span><div class="gc-name">Decode Message</div></div>
+          <div class="game-card" data-game="truthordare" onclick="hostChangeGame(this)"><span class="gc-icon">🔥</span><div class="gc-name">Truth or Dare</div></div>
         </div>
       </div>
-      <div id="player-list" class="player-list"></div>
-      <div id="lobby-waiting" class="waiting-msg">
-        <span class="pulse">⏳</span> Waiting for players to join<span class="waiting-dots"></span>
-      </div>
-      <div id="host-controls" class="hidden">
-        <button class="btn btn-primary mt-16" onclick="startGame()" id="start-btn">▶ Start Game</button>
-        <div class="btn-row mt-12">
-          <button class="btn btn-secondary btn-small" onclick="toggleGameSelector()">🎮 Change Game</button>
-          <button class="btn btn-secondary btn-small" onclick="leaveRoom()">🚪 Leave</button>
+      <div id="lobby-players" class="player-list-lobby"></div>
+      <div id="lobby-waiting" class="muted tc mt12" style="font-size:.85rem;padding:12px 0;">⏳ Waiting for players<span class="dots"></span></div>
+      <!-- Host controls -->
+      <div id="host-zone" class="hidden">
+        <button class="btn btn-primary mt16" onclick="doStart()">▶ Start Game</button>
+        <div class="btn-row mt12">
+          <button class="btn btn-ghost btn-sm" onclick="toggleSwitcher()">🎮 Switch Game</button>
+          <button class="btn btn-ghost btn-sm" onclick="leave()">🚪 Leave</button>
         </div>
       </div>
-      <div id="guest-controls" class="hidden">
-        <button class="btn btn-secondary mt-16" onclick="leaveRoom()">🚪 Leave Room</button>
+      <!-- Guest controls -->
+      <div id="guest-zone" class="hidden">
+        <button class="btn btn-ghost mt16" onclick="leave()">🚪 Leave Room</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════
-  SCREEN 4 — TIC TAC TOE
-══════════════════════════════════════════════════ -->
-<div id="screen-ttt" class="screen">
-  <div class="game-layout">
-    <div class="game-main">
-      <div class="game-header">
-        <h2>❌⭕ Tic-Tac-Toe</h2>
-        <p id="ttt-room-label">Room: XXXXX</p>
-      </div>
-      <div id="ttt-spectator" class="spectator-notice hidden">👀 You are watching this match</div>
-      <div class="ttt-players" id="ttt-players"></div>
-      <div class="ttt-status">
-        <div class="ttt-turn" id="ttt-turn-msg">Waiting...</div>
-      </div>
-      <div class="ttt-board" id="ttt-board"></div>
-      <div id="ttt-result-area" class="hidden text-center mt-16">
-        <div id="ttt-result-msg" style="font-size:1.4rem;font-weight:900;margin-bottom:12px;"></div>
-        <div id="ttt-host-btns" class="btn-row" style="justify-content:center;max-width:360px;margin:0 auto;">
-          <button class="btn btn-green btn-small" onclick="rematchTTT()">🔄 Rematch</button>
-          <button class="btn btn-secondary btn-small" onclick="backToLobby()">🏠 Lobby</button>
+<!-- ═══════════════════════════════════════════
+  TIC-TAC-TOE
+═══════════════════════════════════════════ -->
+<div id="s-ttt" class="screen">
+  <div class="game-wrap">
+    <div class="game-layout">
+      <div class="game-main">
+        <div class="game-header">
+          <h2>❌⭕ Tic-Tac-Toe</h2>
+          <p id="ttt-room-lbl">Room: XXXXX</p>
         </div>
-        <div id="ttt-guest-btns" class="hidden text-muted mt-12">Waiting for host to continue...</div>
-      </div>
-    </div>
-    <div class="game-sidebar">
-      <div class="score-panel">
-        <h3>🏆 Scores</h3>
-        <div id="ttt-scores"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════════════
-  SCREEN 5 — IMPOSTER
-══════════════════════════════════════════════════ -->
-<div id="screen-imposter" class="screen">
-  <div class="game-layout">
-    <div class="game-main">
-      <div class="game-header">
-        <h2>🕵️ Find the Imposter</h2>
-        <p id="imp-room-label">Room: XXXXX</p>
-      </div>
-
-      <!-- Phase: Role Reveal -->
-      <div id="imp-role" class="hidden">
-        <div class="role-reveal">
-          <p style="color:var(--muted);margin-bottom:8px;">Your secret role:</p>
-          <div class="role-card">
-            <div id="imp-role-badge" class="role-badge imposter">Imposter</div>
-            <div class="role-category" id="imp-category">Category: Animals</div>
-            <div class="role-word" id="imp-word">ELEPHANT</div>
-            <div class="role-tip" id="imp-tip">Blend in — don't reveal you're the imposter!</div>
-          </div>
-          <p class="text-muted" style="font-size:.85rem;">Clue phase starts in a moment<span class="waiting-dots"></span></p>
-        </div>
-      </div>
-
-      <!-- Phase: Give Clue -->
-      <div id="imp-clue-phase" class="hidden">
-        <p class="text-muted text-center" style="margin-bottom:12px;">Clues given so far:</p>
-        <div class="clue-list" id="imp-clue-list"></div>
-        <div id="imp-your-turn" class="clue-input-area hidden">
-          <p style="font-weight:700;margin-bottom:12px;">🎤 Your turn! Give a one-word clue about your word:</p>
-          <div style="display:flex;gap:10px;">
-            <input id="imp-clue-input" type="text" placeholder="Type a clue..." maxlength="30" style="flex:1;" onkeydown="if(event.key==='Enter')sendClue()"/>
-            <button class="btn btn-primary btn-small" onclick="sendClue()" style="width:auto;white-space:nowrap;">Send →</button>
-          </div>
-        </div>
-        <div id="imp-waiting-turn" class="waiting-msg hidden">
-          <span id="imp-waiting-name" class="text-yellow"></span> is giving their clue<span class="waiting-dots"></span>
-        </div>
-      </div>
-
-      <!-- Phase: Vote -->
-      <div id="imp-vote-phase" class="hidden">
-        <h3 style="text-align:center;margin-bottom:8px;">🗳️ Vote! Who is the Imposter?</h3>
-        <p class="text-muted text-center" style="margin-bottom:12px;font-size:.85rem;">All clues in — time to vote!</p>
-        <div class="clue-list" id="imp-vote-clue-list"></div>
-        <div class="vote-grid" id="imp-vote-grid"></div>
-        <p id="imp-vote-count" class="text-center text-muted mt-12 pulse"></p>
-      </div>
-
-      <!-- Phase: Reveal -->
-      <div id="imp-reveal" class="hidden">
-        <div class="reveal-card" id="imp-reveal-card">
-          <div id="imp-reveal-emoji" style="font-size:3rem;margin-bottom:12px;">🎭</div>
-          <div class="result-big" id="imp-result-big">Caught!</div>
-          <p id="imp-result-desc" style="color:var(--muted);margin:8px 0;"></p>
-          <div style="margin:16px 0;padding:16px;background:var(--surface);border-radius:10px;">
-            <div style="font-size:.85rem;color:var(--muted);margin-bottom:4px;">The word was:</div>
-            <div style="font-size:1.5rem;font-weight:900;" id="imp-reveal-word"></div>
-            <div style="font-size:.85rem;color:var(--muted);" id="imp-reveal-impword"></div>
-          </div>
-          <div id="imp-host-next" class="hidden">
-            <div class="btn-row" style="justify-content:center;">
-              <button class="btn btn-green btn-small" onclick="nextImposterRound()">▶ Next Round</button>
-              <button class="btn btn-secondary btn-small" onclick="backToLobby()">🏠 Lobby</button>
+        <div class="ttt-wrapper">
+          <div id="ttt-spectator" class="spectator-bar hidden">👁 You are spectating this match</div>
+          <div class="ttt-matchup" id="ttt-matchup"></div>
+          <div class="ttt-status-bar" id="ttt-status">Waiting…</div>
+          <div class="ttt-board" id="ttt-board"></div>
+          <div id="ttt-result" class="ttt-result hidden">
+            <div class="ttt-result-emoji" id="ttt-res-emoji">🏆</div>
+            <div class="ttt-result-msg" id="ttt-res-msg"></div>
+            <div class="btn-row mt16" style="justify-content:center;max-width:320px;margin:16px auto 0;">
+              <button id="ttt-rematch-btn" class="btn btn-green btn-sm hidden" onclick="doRematch()">🔄 Rematch</button>
+              <button id="ttt-lobby-btn" class="btn btn-ghost btn-sm hidden" onclick="backLobby()">🏠 Lobby</button>
+              <div id="ttt-wait-msg" class="muted hidden" style="font-size:.82rem;padding:8px 0;">Waiting for host<span class="dots"></span></div>
             </div>
           </div>
-          <div id="imp-guest-next" class="hidden text-muted mt-12">Waiting for host<span class="waiting-dots"></span></div>
         </div>
       </div>
-    </div>
-    <div class="game-sidebar">
-      <div class="score-panel">
-        <h3>🏆 Scores</h3>
-        <div id="imp-scores"></div>
+      <div class="game-sidebar">
+        <div class="score-panel">
+          <div class="score-panel-title">🏆 Scoreboard</div>
+          <div id="ttt-scores"></div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════
-  SCREEN 6 — DECODE
-══════════════════════════════════════════════════ -->
-<div id="screen-decode" class="screen">
-  <div class="game-layout">
-    <div class="game-main">
-      <div class="game-header">
-        <h2>🔐 Decode the Message</h2>
-        <p id="dec-room-label">Room: XXXXX</p>
+<!-- ═══════════════════════════════════════════
+  IMPOSTER
+═══════════════════════════════════════════ -->
+<div id="s-imp" class="screen">
+  <div class="game-wrap">
+    <div class="game-layout">
+      <div class="game-main">
+        <div class="game-header"><h2>🕵️ Find the Imposter</h2><p id="imp-room-lbl"></p></div>
+
+        <!-- Role Reveal -->
+        <div id="imp-role" class="hidden">
+          <div class="role-reveal-card">
+            <div id="imp-badge" class="role-badge badge-imposter">🎭 Imposter</div>
+            <div class="role-category-tag" id="imp-category">Category: —</div>
+            <div class="role-word-big" id="imp-word">—</div>
+            <div class="role-tip" id="imp-tip">Blend in!</div>
+            <div class="countdown-bar"><div class="countdown-fill"></div></div>
+            <p class="muted mt12" style="font-size:.78rem;">Clue phase begins in 6 seconds<span class="dots"></span></p>
+          </div>
+        </div>
+
+        <!-- Clue Phase -->
+        <div id="imp-clue" class="hidden">
+          <div class="clue-phase-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <span style="font-size:.8rem;font-weight:700;color:var(--muted);">CLUES</span>
+              <span class="player-count-tag" id="imp-clue-progress">0/0</span>
+            </div>
+            <div class="clue-list" id="imp-clue-list"></div>
+            <div id="imp-your-turn" class="your-turn-prompt hidden">
+              <div class="your-turn-label">🎤 Your turn — give ONE word clue</div>
+              <div class="clue-input-row">
+                <input id="imp-clue-input" type="text" placeholder="One word clue…" maxlength="30" onkeydown="if(event.key==='Enter')sendClue()"/>
+                <button class="btn btn-primary btn-sm" onclick="sendClue()" style="white-space:nowrap;width:auto;">Send</button>
+              </div>
+            </div>
+            <div id="imp-waiting-turn" class="waiting-player-card hidden">
+              <div class="muted" style="font-size:.75rem;margin-bottom:4px;">Waiting for clue from</div>
+              <div class="waiting-player-name" id="imp-waiting-name">—</div>
+              <div class="muted mt8" style="font-size:.78rem;"><span class="pulse">⏳</span> <span class="dots"></span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vote Phase -->
+        <div id="imp-vote" class="hidden">
+          <div class="clue-phase-card">
+            <div class="vote-section">
+              <h3>🗳 Time to Vote</h3>
+              <p class="vote-instructions">Review all clues below. Who is the imposter?</p>
+              <div class="clue-list" id="imp-vote-clues"></div>
+              <div class="vote-grid" id="imp-vote-grid"></div>
+              <div class="vote-count" id="imp-vote-count"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reveal -->
+        <div id="imp-reveal" class="hidden">
+          <div class="reveal-card" id="imp-reveal-card">
+            <span class="reveal-emoji" id="imp-reveal-emoji">🎭</span>
+            <div class="reveal-result" id="imp-reveal-result">—</div>
+            <div class="reveal-desc" id="imp-reveal-desc"></div>
+            <div class="reveal-words-box">
+              <div class="reveal-word-label">Category</div>
+              <div style="font-size:.9rem;color:var(--muted);margin-bottom:8px;" id="imp-reveal-cat"></div>
+              <div class="reveal-word-label">Everyone's word</div>
+              <div class="reveal-word-val" id="imp-reveal-word"></div>
+              <div class="reveal-word-label mt8">Imposter's word</div>
+              <div class="reveal-word-val" id="imp-reveal-iword" style="color:var(--red);"></div>
+            </div>
+            <div id="imp-host-next" class="btn-row hidden" style="justify-content:center;margin-top:12px;">
+              <button class="btn btn-green btn-sm" onclick="impNextRound()">▶ Next Round</button>
+              <button class="btn btn-ghost btn-sm" onclick="backLobby()">🏠 Lobby</button>
+            </div>
+            <div id="imp-guest-next" class="hidden muted tc mt12" style="font-size:.82rem;">Waiting for host<span class="dots"></span></div>
+          </div>
+        </div>
       </div>
-      <div class="encoded-display">
-        <div class="encoded-text" id="dec-encoded"></div>
-        <div class="encoded-hint" id="dec-hint"></div>
+      <div class="game-sidebar">
+        <div class="score-panel">
+          <div class="score-panel-title">🏆 Scores</div>
+          <div id="imp-scores"></div>
+        </div>
       </div>
-      <div>
-        <p style="font-size:.8rem;color:var(--muted);text-align:center;margin-bottom:8px;">💡 Letters shift in Caesar cipher (A→D, B→E, ...)</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+  DECODE
+═══════════════════════════════════════════ -->
+<div id="s-decode" class="screen">
+  <div class="game-wrap">
+    <div class="game-layout">
+      <div class="game-main">
+        <div class="game-header"><h2>🔐 Decode the Message</h2><p id="dec-room-lbl"></p></div>
+        <div class="decode-card">
+          <div class="decode-label">Encrypted Message</div>
+          <div class="encoded-text" id="dec-encoded">—</div>
+          <div class="decode-hint" id="dec-hint"></div>
+        </div>
+        <p style="font-size:.75rem;color:var(--muted);text-align:center;margin-bottom:10px;">💡 Caesar cipher — letters are shifted by a fixed number. A→D, B→E …</p>
         <div class="reveal-row" id="dec-reveal-row"></div>
-      </div>
-      <div class="guess-list" id="dec-guess-list"></div>
-      <div style="display:flex;gap:10px;margin-top:12px;">
-        <input id="dec-guess-input" type="text" placeholder="Type your decoded message..." autocomplete="off" style="flex:1;" onkeydown="if(event.key==='Enter')sendDecodeGuess()"/>
-        <button class="btn btn-primary btn-small" onclick="sendDecodeGuess()" style="width:auto;white-space:nowrap;">Guess →</button>
-      </div>
-      <div id="dec-host-hint-btn" class="hidden mt-12">
-        <button class="btn btn-yellow btn-small" onclick="requestHint()" style="width:auto;">💡 Give Hint (<span id="dec-hints-left">3</span> left)</button>
-      </div>
-      <div id="dec-solved-panel" class="hidden mt-16 text-center">
-        <div style="font-size:1.4rem;font-weight:900;color:var(--green);margin-bottom:8px;">✅ Message Decoded!</div>
-        <div id="dec-solver-name" style="color:var(--muted);"></div>
-        <div id="dec-host-next" class="hidden btn-row mt-16" style="justify-content:center;">
-          <button class="btn btn-green btn-small" onclick="nextDecodeRound()">▶ Next Round</button>
-          <button class="btn btn-secondary btn-small" onclick="backToLobby()">🏠 Lobby</button>
+        <div class="guess-feed" id="dec-guess-feed"></div>
+        <div class="decode-input-row">
+          <input id="dec-input" type="text" placeholder="Type the decoded message…" autocomplete="off" onkeydown="if(event.key==='Enter')sendGuess()"/>
+          <button class="btn btn-cyan btn-sm" onclick="sendGuess()" style="width:auto;white-space:nowrap;">Guess →</button>
         </div>
-        <div id="dec-guest-next" class="hidden text-muted mt-12">Waiting for host<span class="waiting-dots"></span></div>
+        <div id="dec-hint-btn-wrap" class="hidden mt12">
+          <button class="btn btn-yellow btn-sm" onclick="askHint()" style="width:auto;">💡 Reveal Hint (<span id="dec-hints-left">3</span> left)</button>
+        </div>
+        <div id="dec-solved" class="solved-overlay hidden mt16">
+          <div class="solved-title">✅ Decoded!</div>
+          <div class="solved-sub" id="dec-solved-sub"></div>
+          <div id="dec-host-next" class="btn-row mt12 hidden" style="justify-content:center;">
+            <button class="btn btn-green btn-sm" onclick="decNextRound()">▶ Next Round</button>
+            <button class="btn btn-ghost btn-sm" onclick="backLobby()">🏠 Lobby</button>
+          </div>
+          <div id="dec-guest-next" class="hidden muted tc mt8" style="font-size:.82rem;">Waiting for host<span class="dots"></span></div>
+        </div>
       </div>
-    </div>
-    <div class="game-sidebar">
-      <div class="score-panel">
-        <h3>🏆 Scores</h3>
-        <div id="dec-scores"></div>
+      <div class="game-sidebar">
+        <div class="score-panel">
+          <div class="score-panel-title">🏆 Scores</div>
+          <div id="dec-scores"></div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════
-  SCREEN 7 — TRUTH OR DARE
-══════════════════════════════════════════════════ -->
-<div id="screen-tod" class="screen">
-  <div class="game-layout">
-    <div class="game-main">
-      <div class="game-header">
-        <h2>🎯 Truth or Dare</h2>
-        <p id="tod-room-label">Room: XXXXX</p>
-      </div>
-      <div class="tod-wheel">
-        <div class="tod-spotlight">
-          <p style="color:var(--muted);font-size:.85rem;margin-bottom:4px;">It's time for...</p>
-          <div class="tod-name" id="tod-player-name">Player</div>
-          <p class="tod-prompt" id="tod-prompt">Choose your fate!</p>
-        </div>
-
-        <!-- Choices (shown to current player) -->
-        <div class="tod-choices" id="tod-choices">
-          <div class="tod-choice truth" onclick="pickTOD('truth')">
-            <span class="ci">🤔</span>
-            <span class="cl">Truth</span>
+<!-- ═══════════════════════════════════════════
+  TRUTH OR DARE
+═══════════════════════════════════════════ -->
+<div id="s-tod" class="screen">
+  <div class="game-wrap">
+    <div class="game-layout">
+      <div class="game-main">
+        <div class="game-header"><h2>🔥 Truth or Dare</h2><p id="tod-room-lbl"></p></div>
+        <div class="tod-wrap">
+          <div class="tod-spotlight">
+            <div class="tod-spotlight-label">On the hot seat</div>
+            <div class="tod-player-name" id="tod-pname">—</div>
+            <div class="tod-status" id="tod-status">Choose your fate…</div>
           </div>
-          <div class="tod-choice dare" onclick="pickTOD('dare')">
-            <span class="ci">🔥</span>
-            <span class="cl">Dare</span>
+          <div class="tod-choices" id="tod-choices">
+            <button class="tod-choice-btn truth-btn" onclick="pickTOD('truth')">
+              <span class="tod-ci">🤔</span>
+              <span class="tod-cl">Truth</span>
+            </button>
+            <button class="tod-choice-btn dare-btn" onclick="pickTOD('dare')">
+              <span class="tod-ci">🔥</span>
+              <span class="tod-cl">Dare</span>
+            </button>
           </div>
-        </div>
-
-        <!-- Content card (shown after pick) -->
-        <div class="tod-content-card hidden" id="tod-content-card">
-          <div class="tod-type" id="tod-type-label">TRUTH</div>
-          <div class="tod-text" id="tod-content-text"></div>
-        </div>
-
-        <div style="display:flex;gap:12px;align-items:center;margin-top:16px;width:100%;">
-          <button class="spin-btn" id="tod-spin-btn" onclick="spinTOD()" title="Spin to pick random player">🎲</button>
-          <div style="flex:1;">
-            <button class="btn btn-secondary" id="tod-next-btn" onclick="nextTOD()">⏭ Next Player</button>
+          <div class="tod-content-reveal hidden" id="tod-content-card">
+            <div class="tod-type-label" id="tod-type-lbl">TRUTH</div>
+            <div class="tod-content-text" id="tod-content-txt"></div>
+          </div>
+          <div class="tod-bottom-row">
+            <button class="spin-btn" onclick="spinTOD()" title="Random player">🎲</button>
+            <button class="btn btn-ghost" id="tod-next-btn" onclick="nextTOD()" style="display:none;">⏭ Next Player</button>
+          </div>
+          <p class="muted mt8" style="font-size:.75rem;text-align:center;">🎲 Spin the wheel to pick a random player</p>
+          <div id="tod-host-lobby" class="hidden mt12" style="width:100%;">
+            <button class="btn btn-ghost btn-sm" onclick="backLobby()">🏠 Back to Lobby</button>
           </div>
         </div>
-        <p class="text-muted" style="font-size:.8rem;margin-top:8px;">🎲 Spin to pick a random player</p>
       </div>
-    </div>
-    <div class="game-sidebar">
-      <div class="score-panel">
-        <h3>👥 Players</h3>
-        <div id="tod-player-list"></div>
-      </div>
-      <div style="margin-top:12px;">
-        <button class="btn btn-secondary btn-small" onclick="backToLobby()" id="tod-back-btn" style="display:none;">🏠 Lobby</button>
+      <div class="game-sidebar">
+        <div class="score-panel">
+          <div class="score-panel-title">👥 Players</div>
+          <div id="tod-player-chips" class="tod-player-chips"></div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Toast container -->
-<div class="toast-wrap" id="toast-wrap"></div>
+<!-- Toasts -->
+<div id="toast-wrap"></div>
 
 <script>
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // STATE
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 const socket = io();
+let myId = '';
 let myName = '';
-let myRoomCode = '';
+let myCode = '';
 let isHost = false;
-let myId = socket.id;
-let selectedGame = 'tictactoe';
-let currentPlayers = [];
-let tttPlayerInfo = [];
-let impMyRole = null;
-let decHintsLeft = 3;
+let selGame = 'tictactoe';
+let tttPlayers = [];
+let curPlayers = [];
+let decMessage = '';
+let decStructure = [];
+let decRevealPos = [];
 
-// Colours for avatars
-const COLORS = ['#e94560','#533483','#00b4d8','#06d6a0','#ffd60a','#f77f00','#a663cc','#4cc9f0'];
-function playerColor(name) {
-  let h = 0; for(const c of name) h = (h*31+c.charCodeAt(0))&0xffffffff;
-  return COLORS[Math.abs(h) % COLORS.length];
+socket.on('connect', () => { myId = socket.id; });
+
+// ═══════════════════════════════════════════
+// SCREEN
+// ═══════════════════════════════════════════
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  const el = document.getElementById(id);
+  el.style.display = 'flex';
+  // Force reflow
+  el.offsetHeight;
+  el.classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+// COLORS & AVATARS
+// ═══════════════════════════════════════════
+const PAL = ['#8B5CF6','#06B6D4','#EC4899','#10B981','#F59E0B','#EF4444','#6366F1','#14B8A6'];
+function pColor(name) {
+  let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
+  return PAL[Math.abs(h) % PAL.length];
 }
 function initials(name) { return name.slice(0,2).toUpperCase(); }
 
-// ══════════════════════════════════════════════════
-// SCREENS
-// ══════════════════════════════════════════════════
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // HOME
-// ══════════════════════════════════════════════════
-function goToCreate() {
-  const name = document.getElementById('home-name').value.trim();
-  if (!name) { toast('Enter your name first!', 'error'); return; }
-  myName = name;
-  showScreen('screen-create');
+// ═══════════════════════════════════════════
+function goCreate() {
+  const n = document.getElementById('h-name').value.trim();
+  if (!n) { toast('Enter your name first!', 'error'); return; }
+  myName = n;
+  show('s-create');
+}
+function doJoin() {
+  const n = document.getElementById('h-name').value.trim();
+  const c = document.getElementById('h-code').value.trim().toUpperCase();
+  if (!n) { toast('Enter your name first!', 'error'); return; }
+  if (c.length !== 5) { toast('Enter a valid 5-letter room code!', 'error'); return; }
+  myName = n;
+  socket.emit('join_room', { name: n, code: c });
 }
 
-function joinRoom() {
-  const name = document.getElementById('home-name').value.trim();
-  const code = document.getElementById('home-code').value.trim().toUpperCase();
-  if (!name) { toast('Enter your name first!', 'error'); return; }
-  if (code.length !== 5) { toast('Enter a valid 5-letter room code!', 'error'); return; }
-  myName = name;
-  socket.emit('join_room', { name, code });
-}
-
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // CREATE
-// ══════════════════════════════════════════════════
-function selectGame(el) {
-  document.querySelectorAll('#screen-create .game-card').forEach(c => c.classList.remove('selected'));
+// ═══════════════════════════════════════════
+function pickGame(el) {
+  document.querySelectorAll('#s-create .game-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
-  selectedGame = el.dataset.game;
+  selGame = el.dataset.game;
 }
+function doCreate() { socket.emit('create_room', { name: myName, game: selGame }); }
 
-function createRoom() {
-  socket.emit('create_room', { name: myName, game: selectedGame });
-}
-
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // LOBBY
-// ══════════════════════════════════════════════════
-function copyCode() {
-  navigator.clipboard.writeText(myRoomCode).then(() => toast('Room code copied! 📋', 'success'));
-}
-
-function toggleGameSelector() {
-  const el = document.getElementById('lobby-game-selector');
-  el.classList.toggle('hidden');
-}
-
-function changeGame(el) {
-  document.querySelectorAll('#lobby-game-grid .game-card').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-  socket.emit('change_game', { code: myRoomCode, game: el.dataset.game });
-}
-
-function startGame() {
-  socket.emit('start_game', { code: myRoomCode });
-}
-
-function leaveRoom() {
-  socket.disconnect();
-  location.reload();
-}
-
-function backToLobby() {
-  if (isHost) socket.emit('back_to_lobby', { code: myRoomCode });
-}
+// ═══════════════════════════════════════════
+const GAME_TAGS = {
+  tictactoe:'❌⭕ Tic-Tac-Toe',
+  imposter:'🕵️ Find Imposter',
+  decode:'🔐 Decode Message',
+  truthordare:'🔥 Truth or Dare',
+};
 
 function renderLobby(room) {
-  myRoomCode = room.code;
-  isHost = room.hostId === socket.id;
-  currentPlayers = room.players;
-
+  myCode = room.code;
+  isHost = room.hostId === myId;
+  curPlayers = room.players;
   document.getElementById('lobby-code').textContent = room.code;
-  document.getElementById('lobby-player-count').textContent = `${room.players.length} player${room.players.length !== 1 ? 's' : ''}`;
+  document.getElementById('lobby-game-tag').textContent = GAME_TAGS[room.game] || room.game;
+  document.getElementById('lobby-pc-tag').textContent = `${room.players.length} player${room.players.length!==1?'s':''}`;
 
-  const gameNames = { tictactoe:'Tic-Tac-Toe ❌⭕', imposter:'Find the Imposter 🕵️', decode:'Decode Message 🔐', truthordare:'Truth or Dare 🎯' };
-  document.getElementById('lobby-game-name').textContent = 'Game: ' + (gameNames[room.game] || room.game);
-
-  const list = document.getElementById('player-list');
+  const list = document.getElementById('lobby-players');
   list.innerHTML = room.players.map(p => `
     <div class="player-chip">
-      <div class="avatar" style="background:${playerColor(p.name)}">${initials(p.name)}</div>
-      <span class="pname">${p.name}${p.id === socket.id ? ' (you)' : ''}</span>
-      <span class="score-badge">${p.score} pts</span>
-      ${p.id === room.hostId ? '<span class="host-badge">HOST</span>' : ''}
+      <div class="avatar" style="background:${pColor(p.name)}">${initials(p.name)}</div>
+      <span class="p-name">${p.name}</span>
+      ${p.id===myId?'<span class="p-me">(you)</span>':''}
+      <span class="score-chip">${p.score}pt</span>
+      ${p.id===room.hostId?'<span class="host-badge">HOST</span>':''}
     </div>`).join('');
 
-  document.getElementById('host-controls').classList.toggle('hidden', !isHost);
-  document.getElementById('guest-controls').classList.toggle('hidden', isHost);
-  document.getElementById('lobby-game-selector').classList.toggle('hidden', !isHost);
+  document.getElementById('host-zone').classList.toggle('hidden', !isHost);
+  document.getElementById('guest-zone').classList.toggle('hidden', isHost);
+  document.getElementById('lobby-game-switcher').classList.toggle('hidden', !isHost);
 
-  // Sync lobby game selector
+  // Sync switcher selection
   document.querySelectorAll('#lobby-game-grid .game-card').forEach(c => {
     c.classList.toggle('selected', c.dataset.game === room.game);
   });
 }
 
-// ══════════════════════════════════════════════════
-// TIC-TAC-TOE
-// ══════════════════════════════════════════════════
-function renderTTTBoard(board, turn, winner) {
+function copyCode() {
+  navigator.clipboard.writeText(myCode).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✅ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 Copy Code'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function toggleSwitcher() {
+  document.getElementById('lobby-game-switcher').classList.toggle('hidden');
+}
+function hostChangeGame(el) {
+  document.querySelectorAll('#lobby-game-grid .game-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  socket.emit('change_game', { code: myCode, game: el.dataset.game });
+}
+function doStart() { socket.emit('start_game', { code: myCode }); }
+function leave() { socket.disconnect(); location.reload(); }
+function backLobby() { if (isHost) socket.emit('back_to_lobby', { code: myCode }); }
+
+// Score helpers
+function renderScores(containerId, players) {
+  document.getElementById(containerId).innerHTML = players.map(p =>
+    `<div class="score-row ${p.id===myId?'me-row':''}">
+      <span class="score-name">${p.name}${p.id===myId?' ★':''}</span>
+      <span class="score-pts">${p.score}</span>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+// TTT
+// ═══════════════════════════════════════════
+function buildTTTBoard(board, winLine, myTurn) {
   const el = document.getElementById('ttt-board');
   el.innerHTML = board.map((cell, i) => {
     let cls = 'ttt-cell';
     if (cell) cls += ' filled ' + cell.toLowerCase();
-    return `<div class="${cls}" onclick="tttClick(${i})">${cell === 'X' ? '✕' : cell === 'O' ? '◯' : ''}</div>`;
+    if (winLine && winLine.includes(i)) cls += ' win-cell';
+    if (!cell && !myTurn) cls += ' disabled';
+    return `<div class="${cls}" onclick="tttClick(${i})">${cell==='X'?'✕':cell==='O'?'◯':''}</div>`;
   }).join('');
 }
 
 function tttClick(i) {
-  if (!myRoomCode) return;
-  socket.emit('ttt_move', { code: myRoomCode, index: i });
+  if (!myCode) return;
+  socket.emit('ttt_move', { code: myCode, index: i });
 }
+function doRematch() { socket.emit('ttt_rematch', { code: myCode }); }
 
-function rematchTTT() {
-  socket.emit('ttt_rematch', { code: myRoomCode });
-}
-
-function renderTTTScores(players) {
-  const me = players.find(p => p.id === socket.id);
-  document.getElementById('ttt-scores').innerHTML = players.map(p =>
-    `<div class="score-row ${p.id === socket.id ? 'me' : ''}">
-      <span class="score-name">${p.name}${p.id === socket.id ? ' ★' : ''}</span>
-      <span class="score-pts">${p.score}</span>
-    </div>`).join('');
-}
-
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // IMPOSTER
-// ══════════════════════════════════════════════════
-function sendClue() {
-  const input = document.getElementById('imp-clue-input');
-  const clue = input.value.trim();
-  if (!clue) { toast('Type a clue first!', 'error'); return; }
-  socket.emit('imposter_clue', { code: myRoomCode, clue });
-  input.value = '';
+// ═══════════════════════════════════════════
+function showImpPhase(phase) {
+  ['imp-role','imp-clue','imp-vote','imp-reveal'].forEach(id =>
+    document.getElementById(id).classList.add('hidden'));
+  document.getElementById(phase).classList.remove('hidden');
 }
 
-function voteFor(name) {
-  document.querySelectorAll('.vote-btn').forEach(b => b.classList.add('voted'));
-  socket.emit('imposter_vote', { code: myRoomCode, votedName: name });
-}
-
-function nextImposterRound() {
-  socket.emit('imposter_next_round', { code: myRoomCode });
-}
-
-function renderImpScores(players) {
-  document.getElementById('imp-scores').innerHTML = players.map(p =>
-    `<div class="score-row ${p.id === socket.id ? 'me' : ''}">
-      <span class="score-name">${p.name}${p.id === socket.id ? ' ★' : ''}</span>
-      <span class="score-pts">${p.score}</span>
-    </div>`).join('');
-}
-
-function renderClues(clues, containerId) {
+function renderClueList(clues, containerId) {
   const el = document.getElementById(containerId);
   if (!el) return;
   el.innerHTML = clues.map(c =>
-    `<div class="clue-item"><span class="cn">${c.name}:</span><span class="ct">"${c.clue}"</span></div>`
-  ).join('');
+    `<div class="clue-item"><span class="clue-who">${c.name}</span><span class="clue-text">"${c.clue}"</span></div>`
+  ).join('') || '<div class="muted" style="font-size:.8rem;padding:8px 0;text-align:center;">No clues yet</div>';
 }
 
-// ══════════════════════════════════════════════════
-// DECODE
-// ══════════════════════════════════════════════════
-let decMessage = '';
-let decRevealPositions = [];
+function sendClue() {
+  const inp = document.getElementById('imp-clue-input');
+  const clue = inp.value.trim();
+  if (!clue) { toast('Type a clue!', 'error'); return; }
+  if (clue.includes(' ')) { toast('One word only!', 'error'); return; }
+  socket.emit('imposter_clue', { code: myCode, clue });
+  inp.value = '';
+}
 
-function renderDecodeReveal(message, revealed) {
+function impNextRound() { socket.emit('imposter_next_round', { code: myCode }); }
+
+// ═══════════════════════════════════════════
+// DECODE
+// ═══════════════════════════════════════════
+function buildRevealRow(structure, revealedPositions, finalMessage) {
   const row = document.getElementById('dec-reveal-row');
-  row.innerHTML = message.split('').map((c, i) => {
-    if (c === ' ') return `<div class="reveal-letter space"></div>`;
-    const isRev = revealed.includes(i);
-    return `<div class="reveal-letter ${isRev ? 'revealed' : ''}">${isRev ? c : '?'}</div>`;
+  row.innerHTML = structure.map((type, i) => {
+    if (type === 'S') return `<div class="reveal-letter space-gap"></div>`;
+    const isRevealed = revealedPositions.includes(i);
+    const isSolved = !!finalMessage;
+    const letter = isSolved ? finalMessage[i] : (isRevealed ? (decMessage[i] || '?') : '?');
+    const cls = isSolved ? 'reveal-letter solved-letter' : (isRevealed ? 'reveal-letter shown' : 'reveal-letter');
+    return `<div class="${cls}">${letter}</div>`;
   }).join('');
 }
 
-function sendDecodeGuess() {
-  const input = document.getElementById('dec-guess-input');
-  const guess = input.value.trim();
-  if (!guess) { toast('Type your guess first!', 'error'); return; }
-  socket.emit('decode_guess', { code: myRoomCode, guess });
-  input.value = '';
+function sendGuess() {
+  const inp = document.getElementById('dec-input');
+  const g = inp.value.trim();
+  if (!g) { toast('Type your guess!', 'error'); return; }
+  socket.emit('decode_guess', { code: myCode, guess: g });
+  inp.value = '';
 }
+function askHint() { socket.emit('decode_hint', { code: myCode }); }
+function decNextRound() { socket.emit('decode_next_round', { code: myCode }); }
 
-function requestHint() {
-  socket.emit('decode_hint', { code: myRoomCode });
-}
-
-function nextDecodeRound() {
-  socket.emit('decode_next_round', { code: myRoomCode });
-}
-
-function renderDecScores(players) {
-  document.getElementById('dec-scores').innerHTML = players.map(p =>
-    `<div class="score-row ${p.id === socket.id ? 'me' : ''}">
-      <span class="score-name">${p.name}${p.id === socket.id ? ' ★' : ''}</span>
-      <span class="score-pts">${p.score}</span>
-    </div>`).join('');
-}
-
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // TRUTH OR DARE
-// ══════════════════════════════════════════════════
-function pickTOD(choice) {
-  socket.emit('tod_pick', { code: myRoomCode, choice });
-}
-
-function nextTOD() {
-  socket.emit('tod_next', { code: myRoomCode });
-}
-
+// ═══════════════════════════════════════════
+function pickTOD(choice) { socket.emit('tod_pick', { code: myCode, choice }); }
+function nextTOD() { socket.emit('tod_next', { code: myCode }); }
 function spinTOD() {
-  const btn = document.getElementById('tod-spin-btn');
+  const btn = document.querySelector('.spin-btn');
+  btn.classList.remove('spinning');
+  void btn.offsetWidth;
   btn.classList.add('spinning');
-  setTimeout(() => btn.classList.remove('spinning'), 700);
-  socket.emit('tod_spin', { code: myRoomCode });
+  setTimeout(() => btn.classList.remove('spinning'), 600);
+  socket.emit('tod_spin', { code: myCode });
 }
 
-function renderTODPlayers(players, currentId) {
-  document.getElementById('tod-player-list').innerHTML = players.map(p =>
-    `<div class="score-row ${p.id === socket.id ? 'me' : ''} ${p.id === currentId ? 'text-yellow' : ''}">
-      <span class="score-name">${p.id === currentId ? '▶ ' : ''}${p.name}${p.id === socket.id ? ' ★' : ''}</span>
+function renderTODChips(players, currentId) {
+  document.getElementById('tod-player-chips').innerHTML = players.map(p =>
+    `<div class="tod-chip ${p.id===currentId?'active-chip':''}">
+      <div class="dot"></div>
+      <span style="font-weight:${p.id===currentId?'700':'500'}">${p.id===currentId?'▶ ':''}${p.name}${p.id===myId?' (you)':''}</span>
     </div>`).join('');
 }
 
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // SOCKET EVENTS
-// ══════════════════════════════════════════════════
-socket.on('connect', () => { myId = socket.id; });
-
-socket.on('room_created', ({ code }) => {
-  myRoomCode = code;
-  isHost = true;
-  showScreen('screen-lobby');
-});
-
-socket.on('room_joined', ({ code }) => {
-  myRoomCode = code;
-  isHost = false;
-  showScreen('screen-lobby');
-});
-
-socket.on('room_update', (room) => {
-  renderLobby(room);
-});
-
-socket.on('lobby_reset', () => {
-  showScreen('screen-lobby');
-});
+// ═══════════════════════════════════════════
+socket.on('room_created', ({ code }) => { myCode = code; isHost = true; show('s-lobby'); });
+socket.on('room_joined',  ({ code }) => { myCode = code; isHost = false; show('s-lobby'); });
+socket.on('room_update', (room) => { renderLobby(room); });
+socket.on('lobby_reset', () => { show('s-lobby'); });
+socket.on('error_msg', (msg) => { toast(msg, 'error'); });
 
 socket.on('player_left', ({ name, players, newHostId }) => {
+  curPlayers = players;
+  if (newHostId === myId) { isHost = true; toast('You are now the host!', 'info'); }
   toast(`${name} left the room`, 'error');
-  currentPlayers = players;
-  if (newHostId === socket.id) { isHost = true; toast('You are now the host!', 'success'); }
 });
 
-socket.on('error_msg', (msg) => {
-  toast(msg, 'error');
-});
-
-// ── TTT Events ──
+// ── TTT ──────────────────────────────────────────────────────────────────────
 socket.on('ttt_start', ({ board, players, turn, scores }) => {
-  tttPlayerInfo = players;
-  showScreen('screen-ttt');
-  document.getElementById('ttt-room-label').textContent = `Room: ${myRoomCode}`;
-  document.getElementById('ttt-result-area').classList.add('hidden');
+  tttPlayers = players;
+  show('s-ttt');
+  document.getElementById('ttt-room-lbl').textContent = `Room: ${myCode}`;
+  document.getElementById('ttt-result').classList.add('hidden');
 
-  const isPlayer = players.some(p => p.id === socket.id);
+  const isPlayer = players.some(p => p.id === myId);
   document.getElementById('ttt-spectator').classList.toggle('hidden', isPlayer);
 
-  document.getElementById('ttt-players').innerHTML = players.map(p =>
-    `<div class="ttt-player-card ${p.symbol.toLowerCase()} ${turn === p.symbol ? 'active' : ''}">
-      <div class="ttt-symbol">${p.symbol === 'X' ? '✕' : '◯'}</div>
-      <div style="font-weight:700;font-size:.9rem;">${p.name}${p.id===socket.id?' (you)':''}</div>
-    </div>`).join('');
+  const [p1, p2] = players;
+  document.getElementById('ttt-matchup').innerHTML = `
+    <div class="ttt-player-card x-card ${turn==='X'?'active':''}">
+      <div class="ttt-sym">✕</div>
+      <div class="ttt-pname">${p1.name}${p1.id===myId?' (you)':''}</div>
+    </div>
+    <div class="ttt-vs">VS</div>
+    <div class="ttt-player-card o-card ${turn==='O'?'active':''}">
+      <div class="ttt-sym">◯</div>
+      <div class="ttt-pname">${p2.name}${p2.id===myId?' (you)':''}</div>
+    </div>`;
 
-  const curPlayer = players.find(p => p.symbol === turn);
-  const isMyTurn = curPlayer?.id === socket.id;
-  document.getElementById('ttt-turn-msg').textContent = isMyTurn ? '🎮 Your turn!' : `⏳ ${curPlayer?.name}'s turn`;
-  renderTTTBoard(board, turn, null);
-  renderTTTScores(scores);
+  const curP = players.find(p => p.symbol === turn);
+  const myTurn = curP?.id === myId;
+  document.getElementById('ttt-status').textContent = myTurn ? '🎮 Your turn!' : `⏳ ${curP?.name}'s turn`;
+  buildTTTBoard(board, null, myTurn && isPlayer);
+  renderScores('ttt-scores', scores);
 });
 
-socket.on('ttt_update', ({ board, turn, winner, winnerName, scores }) => {
-  renderTTTBoard(board, turn, winner);
-  renderTTTScores(scores);
+socket.on('ttt_update', ({ board, turn, winner, winLine, winnerName, scores }) => {
+  const [p1, p2] = tttPlayers;
+  renderScores('ttt-scores', scores);
+  buildTTTBoard(board, winLine, false);
 
   if (winner) {
-    const resultArea = document.getElementById('ttt-result-area');
-    const msg = document.getElementById('ttt-result-msg');
-    resultArea.classList.remove('hidden');
+    const resultEl = document.getElementById('ttt-result');
+    resultEl.classList.remove('hidden');
+    const emoji = document.getElementById('ttt-res-emoji');
+    const msg   = document.getElementById('ttt-res-msg');
     if (winner === 'draw') {
-      msg.textContent = "🤝 It's a Draw!";
+      emoji.textContent = '🤝';
+      msg.textContent = "It's a Draw!";
       msg.style.color = 'var(--yellow)';
     } else {
-      const isWinner = scores.find(p => p.name === winnerName)?.id === socket.id;
-      msg.textContent = isWinner ? `🎉 You win!` : `🏆 ${winnerName} wins!`;
-      msg.style.color = isWinner ? 'var(--green)' : 'var(--accent)';
+      const iWin = scores.find(p=>p.name===winnerName)?.id === myId;
+      emoji.textContent = iWin ? '🏆' : '😔';
+      msg.textContent = iWin ? 'You Win!' : `${winnerName} Wins!`;
+      msg.style.color = iWin ? 'var(--green)' : 'var(--red)';
     }
-    document.getElementById('ttt-host-btns').classList.toggle('hidden', !isHost);
-    document.getElementById('ttt-guest-btns').classList.toggle('hidden', isHost);
-    document.getElementById('ttt-turn-msg').textContent = winner === 'draw' ? "It's a draw!" : `${winnerName} wins! 🎉`;
-  } else {
-    const curPlayer = tttPlayerInfo.find(p => p.symbol === turn);
-    const isMyTurn = curPlayer?.id === socket.id;
-    document.getElementById('ttt-turn-msg').textContent = isMyTurn ? '🎮 Your turn!' : `⏳ ${curPlayer?.name}'s turn`;
+    document.getElementById('ttt-rematch-btn').classList.toggle('hidden', !isHost);
+    document.getElementById('ttt-lobby-btn').classList.toggle('hidden', !isHost);
+    document.getElementById('ttt-wait-msg').classList.toggle('hidden', isHost);
+    document.getElementById('ttt-status').textContent = winner === 'draw' ? "It's a draw!" : `${winnerName} wins! 🎉`;
 
-    // Update active highlights
+    // Update matchup cards — no active
+    document.querySelectorAll('.ttt-player-card').forEach(c => c.classList.remove('active'));
+  } else {
+    const curP = tttPlayers.find(p => p.symbol === turn);
+    const myTurn = curP?.id === myId;
+    document.getElementById('ttt-status').textContent = myTurn ? '🎮 Your turn!' : `⏳ ${curP?.name}'s turn`;
+    buildTTTBoard(board, null, myTurn && tttPlayers.some(p=>p.id===myId));
+
+    // Update active card
     document.querySelectorAll('.ttt-player-card').forEach(c => {
-      const sym = c.classList.contains('x') ? 'X' : 'O';
-      c.classList.toggle('active', sym === turn);
+      const isX = c.classList.contains('x-card');
+      c.classList.toggle('active', isX ? turn==='X' : turn==='O');
     });
   }
 });
 
-// ── Imposter Events ──
+// ── Imposter ──────────────────────────────────────────────────────────────────
 socket.on('imposter_role', ({ word, category, isImposter, players }) => {
-  impMyRole = { word, category, isImposter };
-  showScreen('screen-imposter');
-  document.getElementById('imp-room-label').textContent = `Room: ${myRoomCode}`;
-  renderImpScores(players);
+  show('s-imp');
+  document.getElementById('imp-room-lbl').textContent = `Room: ${myCode}`;
+  renderScores('imp-scores', players);
+  showImpPhase('imp-role');
 
-  // Hide all phases
-  ['imp-role','imp-clue-phase','imp-vote-phase','imp-reveal'].forEach(id =>
-    document.getElementById(id).classList.add('hidden'));
-
-  const roleEl = document.getElementById('imp-role');
-  roleEl.classList.remove('hidden');
-  document.getElementById('imp-role-badge').className = `role-badge ${isImposter ? 'imposter' : 'crewmate'}`;
-  document.getElementById('imp-role-badge').textContent = isImposter ? '🎭 Imposter' : '✅ Crewmate';
+  document.getElementById('imp-badge').className = `role-badge ${isImposter?'badge-imposter':'badge-crewmate'}`;
+  document.getElementById('imp-badge').textContent = isImposter ? '🎭 You are the Imposter' : '✅ You are a Crewmate';
   document.getElementById('imp-category').textContent = `Category: ${category}`;
   document.getElementById('imp-word').textContent = word;
   document.getElementById('imp-tip').textContent = isImposter
     ? '⚠️ You have a DIFFERENT word! Blend in and don\'t get caught!'
-    : '✅ Give a clue that only someone who knows this word would give.';
+    : '✅ Give a clue only someone who knows this word would give.';
 });
 
-socket.on('imposter_clue_phase', ({ clues, currentPlayer, currentPlayerId }) => {
-  ['imp-role','imp-vote-phase','imp-reveal'].forEach(id =>
-    document.getElementById(id).classList.add('hidden'));
-  document.getElementById('imp-clue-phase').classList.remove('hidden');
-  renderClues(clues, 'imp-clue-list');
+socket.on('imposter_clue_phase', ({ clues, currentPlayer, currentPlayerId, clueNumber, totalClues }) => {
+  showImpPhase('imp-clue');
+  document.getElementById('imp-clue-progress').textContent = `${clueNumber}/${totalClues}`;
+  renderClueList(clues, 'imp-clue-list');
 
-  const isMyTurn = currentPlayerId === socket.id;
+  const isMyTurn = currentPlayerId === myId;
   document.getElementById('imp-your-turn').classList.toggle('hidden', !isMyTurn);
   document.getElementById('imp-waiting-turn').classList.toggle('hidden', isMyTurn);
   document.getElementById('imp-waiting-name').textContent = currentPlayer;
-  if (isMyTurn) document.getElementById('imp-clue-input').focus();
+  if (isMyTurn) setTimeout(() => document.getElementById('imp-clue-input').focus(), 100);
 });
 
 socket.on('imposter_vote_phase', ({ clues, players }) => {
-  ['imp-role','imp-clue-phase','imp-reveal'].forEach(id =>
-    document.getElementById(id).classList.add('hidden'));
-  document.getElementById('imp-vote-phase').classList.remove('hidden');
-  renderClues(clues, 'imp-vote-clue-list');
+  showImpPhase('imp-vote');
+  renderClueList(clues, 'imp-vote-clues');
   const grid = document.getElementById('imp-vote-grid');
-  grid.innerHTML = players.map(p =>
-    p.id === socket.id ? '' :
-    `<div class="vote-btn" onclick="voteFor('${p.name}')">${p.name}</div>`
-  ).join('');
+  grid.innerHTML = players
+    .filter(p => p.id !== myId)
+    .map(p => `<button class="vote-btn" onclick="castVote('${p.id}','${p.name}',this)">${p.name}</button>`)
+    .join('');
   document.getElementById('imp-vote-count').textContent = 'Cast your vote!';
 });
 
-socket.on('imposter_vote_update', ({ votes, totalVotes, needed }) => {
-  document.getElementById('imp-vote-count').textContent = `${totalVotes}/${needed} votes cast`;
+function castVote(id, name, el) {
+  document.querySelectorAll('.vote-btn').forEach(b => b.classList.add('voted'));
+  socket.emit('imposter_vote', { code: myCode, votedId: id });
+}
+
+socket.on('imposter_vote_update', ({ totalVotes, needed }) => {
+  document.getElementById('imp-vote-count').textContent = `${totalVotes} / ${needed} votes cast`;
 });
 
-socket.on('imposter_reveal', ({ imposterName, word, imposterWord, category, caught, mostVoted, tally, scores }) => {
-  ['imp-role','imp-clue-phase','imp-vote-phase'].forEach(id =>
-    document.getElementById(id).classList.add('hidden'));
-  document.getElementById('imp-reveal').classList.remove('hidden');
-
+socket.on('imposter_reveal', ({ imposterName, imposterId, word, imposterWord, category, caught, mostVotedName, scores }) => {
+  showImpPhase('imp-reveal');
+  renderScores('imp-scores', scores);
   const card = document.getElementById('imp-reveal-card');
-  card.className = `reveal-card ${caught ? 'caught' : 'escaped'}`;
+  card.className = `reveal-card ${caught?'caught':'escaped'}`;
   document.getElementById('imp-reveal-emoji').textContent = caught ? '🎉' : '😈';
-  const res = document.getElementById('imp-result-big');
+  const res = document.getElementById('imp-reveal-result');
   res.textContent = caught ? 'Imposter Caught!' : 'Imposter Escaped!';
-  res.className = `result-big ${caught ? 'caught' : 'escaped'}`;
-  document.getElementById('imp-result-desc').textContent =
-    caught
-      ? `${mostVoted} was voted out — they were the imposter!`
-      : `${imposterName} escaped! Everyone voted for ${mostVoted} instead.`;
+  res.className = `reveal-result ${caught?'caught-txt':'escaped-txt'}`;
+  document.getElementById('imp-reveal-desc').textContent = caught
+    ? `${mostVotedName} was voted out — and they were the imposter! Crew wins! 🎊`
+    : `${imposterName} escaped! The crew voted for ${mostVotedName} instead. 😈`;
+  document.getElementById('imp-reveal-cat').textContent = category;
   document.getElementById('imp-reveal-word').textContent = word;
-  document.getElementById('imp-reveal-impword').textContent = `Imposter's word: ${imposterWord}`;
-  renderImpScores(scores);
-
+  document.getElementById('imp-reveal-iword').textContent = imposterWord;
   document.getElementById('imp-host-next').classList.toggle('hidden', !isHost);
   document.getElementById('imp-guest-next').classList.toggle('hidden', isHost);
 });
 
-// ── Decode Events ──
-socket.on('decode_start', ({ encoded, hint, players }) => {
-  showScreen('screen-decode');
-  decMessage = '';
-  decRevealPositions = [];
-  decHintsLeft = 3;
-  document.getElementById('dec-room-label').textContent = `Room: ${myRoomCode}`;
+// ── Decode ────────────────────────────────────────────────────────────────────
+socket.on('decode_start', ({ encoded, hint, structure, players }) => {
+  show('s-decode');
+  document.getElementById('dec-room-lbl').textContent = `Room: ${myCode}`;
+  decMessage = ''; decStructure = structure; decRevealPos = [];
   document.getElementById('dec-encoded').textContent = encoded;
-  document.getElementById('dec-hint').textContent = `Hint: ${hint}`;
-  document.getElementById('dec-guess-list').innerHTML = '';
-  document.getElementById('dec-solved-panel').classList.add('hidden');
-  document.getElementById('dec-guess-input').disabled = false;
-  document.getElementById('dec-reveal-row').innerHTML = '';
+  document.getElementById('dec-hint').textContent = `Hint: "${hint}"`;
+  document.getElementById('dec-guess-feed').innerHTML = '';
+  document.getElementById('dec-solved').classList.add('hidden');
+  document.getElementById('dec-input').disabled = false;
+  document.getElementById('dec-input').value = '';
   document.getElementById('dec-hints-left').textContent = 3;
-  document.getElementById('dec-host-hint-btn').classList.toggle('hidden', !isHost);
-  renderDecScores(players);
+  document.getElementById('dec-hint-btn-wrap').classList.toggle('hidden', !isHost);
+  buildRevealRow(structure, [], null);
+  renderScores('dec-scores', players);
 });
 
 socket.on('decode_wrong_guess', ({ guesser, guess, guesses }) => {
-  const list = document.getElementById('dec-guess-list');
-  list.innerHTML = guesses.map(g =>
-    `<div class="guess-item wrong"><span class="gn">${g.name}:</span><span class="gv">${g.guess}</span> ✗</div>`
+  const feed = document.getElementById('dec-guess-feed');
+  feed.innerHTML = guesses.map(g =>
+    `<div class="guess-item wrong-guess"><span class="guess-who">${g.name}:</span><span class="guess-val">${g.guess}</span> ✗</div>`
   ).join('');
-  list.scrollTop = list.scrollHeight;
+  feed.scrollTop = feed.scrollHeight;
 });
 
-socket.on('decode_hint_given', ({ hint, revealPositions, message, hintsUsed }) => {
+socket.on('decode_hint_given', ({ revealPositions, message, hintsUsed }) => {
+  decMessage = message; decRevealPos = revealPositions;
+  document.getElementById('dec-hints-left').textContent = 3 - hintsUsed;
+  if (hintsUsed >= 3) document.getElementById('dec-hint-btn-wrap').classList.add('hidden');
+  buildRevealRow(decStructure, revealPositions, null);
+  toast(`💡 Hint ${hintsUsed}/3 — more letters revealed!`, 'success');
+});
+
+socket.on('decode_solved', ({ solver, message, scores, guesses, solverId }) => {
   decMessage = message;
-  decRevealPositions = revealPositions;
-  decHintsLeft = 3 - hintsUsed;
-  document.getElementById('dec-hints-left').textContent = decHintsLeft;
-  renderDecodeReveal(message, revealPositions);
-  if (decHintsLeft <= 0) document.getElementById('dec-host-hint-btn').classList.add('hidden');
-  toast(`💡 Hint ${hintsUsed}/3 revealed!`, 'success');
-});
-
-socket.on('decode_solved', ({ solver, message, scores, guesses }) => {
-  document.getElementById('dec-guess-input').disabled = true;
-  const list = document.getElementById('dec-guess-list');
-  list.innerHTML = guesses.map(g =>
-    `<div class="guess-item ${g.guess === message ? '' : 'wrong'}"><span class="gn">${g.name}:</span><span class="gv">${g.guess}</span> ${g.guess === message ? '✓' : '✗'}</div>`
-  ).join('');
-  const panel = document.getElementById('dec-solved-panel');
+  document.getElementById('dec-input').disabled = true;
+  const feed = document.getElementById('dec-guess-feed');
+  feed.innerHTML = guesses.map(g =>
+    `<div class="guess-item ${g.guess===message?'correct-guess':'wrong-guess'}">
+      <span class="guess-who">${g.name}:</span>
+      <span class="guess-val">${g.guess}</span>
+      ${g.guess===message?'✅':'✗'}
+    </div>`).join('');
+  feed.scrollTop = feed.scrollHeight;
+  buildRevealRow(decStructure, [], message);
+  const panel = document.getElementById('dec-solved');
   panel.classList.remove('hidden');
-  document.getElementById('dec-solver-name').textContent = solver === (currentPlayers.find(p=>p.id===socket.id)?.name) ? '🌟 You solved it!' : `${solver} cracked the code!`;
+  document.getElementById('dec-solved-sub').textContent = solverId === myId
+    ? '🌟 You cracked the code! +3 points!'
+    : `${solver} cracked the code! 🎊`;
   document.getElementById('dec-host-next').classList.toggle('hidden', !isHost);
   document.getElementById('dec-guest-next').classList.toggle('hidden', isHost);
-  renderDecScores(scores);
-  // Reveal full message
-  if (message) {
-    const arr = [];
-    for(let i=0;i<message.length;i++) if(message[i]!==' ') arr.push(i);
-    renderDecodeReveal(message, arr);
-  }
+  renderScores('dec-scores', scores);
 });
 
-// ── Truth or Dare Events ──
+// ── Truth or Dare ─────────────────────────────────────────────────────────────
 socket.on('tod_start', ({ players, currentPlayerId, currentPlayerName }) => {
-  showScreen('screen-tod');
-  document.getElementById('tod-room-label').textContent = `Room: ${myRoomCode}`;
-  renderTODPlayers(players, currentPlayerId);
-  document.getElementById('tod-player-name').textContent = currentPlayerName;
-  const isMe = currentPlayerId === socket.id;
-  document.getElementById('tod-prompt').textContent = isMe ? "It's your turn — choose!" : `${currentPlayerName} is choosing...`;
+  show('s-tod');
+  document.getElementById('tod-room-lbl').textContent = `Room: ${myCode}`;
+  document.getElementById('tod-pname').textContent = currentPlayerName;
+  const isMe = currentPlayerId === myId;
+  document.getElementById('tod-status').textContent = isMe ? "It's your turn — choose!" : `${currentPlayerName} is choosing…`;
   document.getElementById('tod-choices').classList.toggle('hidden', !isMe);
   document.getElementById('tod-content-card').classList.add('hidden');
   document.getElementById('tod-next-btn').style.display = 'none';
-  if (isHost) document.getElementById('tod-back-btn').style.display = 'block';
-  currentPlayers = players;
+  document.getElementById('tod-host-lobby').classList.toggle('hidden', !isHost);
+  renderTODChips(players, currentPlayerId);
+  curPlayers = players;
 });
 
 socket.on('tod_turn', ({ currentPlayerId, currentPlayerName, players, spun }) => {
-  currentPlayers = players;
-  renderTODPlayers(players, currentPlayerId);
-  document.getElementById('tod-player-name').textContent = currentPlayerName;
-  const isMe = currentPlayerId === socket.id;
-  document.getElementById('tod-prompt').textContent = isMe ? "It's your turn — choose!" : `${currentPlayerName} is choosing...`;
+  curPlayers = players;
+  document.getElementById('tod-pname').textContent = currentPlayerName;
+  const isMe = currentPlayerId === myId;
+  document.getElementById('tod-status').textContent = isMe ? "It's your turn — choose!" : `${currentPlayerName} is choosing…`;
   document.getElementById('tod-choices').classList.toggle('hidden', !isMe);
   document.getElementById('tod-content-card').classList.add('hidden');
   document.getElementById('tod-next-btn').style.display = 'none';
+  renderTODChips(players, currentPlayerId);
   if (spun) toast(`🎲 Spinner landed on ${currentPlayerName}!`, 'success');
 });
 
-socket.on('tod_show', ({ playerName, choice, content }) => {
+socket.on('tod_show', ({ playerName, playerId, choice, content }) => {
   document.getElementById('tod-choices').classList.add('hidden');
   const card = document.getElementById('tod-content-card');
-  card.classList.remove('hidden', 'truth', 'dare');
-  card.classList.add(choice);
-  document.getElementById('tod-type-label').textContent = choice.toUpperCase();
-  document.getElementById('tod-content-text').textContent = content;
-  document.getElementById('tod-prompt').textContent = `${playerName} chose ${choice}!`;
+  card.classList.remove('hidden','truth-reveal','dare-reveal');
+  card.classList.add(choice === 'truth' ? 'truth-reveal' : 'dare-reveal');
+  document.getElementById('tod-type-lbl').textContent = choice.toUpperCase();
+  document.getElementById('tod-content-txt').textContent = content;
+  document.getElementById('tod-status').textContent = `${playerName} chose ${choice}!`;
   document.getElementById('tod-next-btn').style.display = 'block';
 });
 
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 // TOAST
-// ══════════════════════════════════════════════════
-function toast(msg, type = '') {
+// ═══════════════════════════════════════════
+function toast(msg, type='info') {
   const wrap = document.getElementById('toast-wrap');
   const el = document.createElement('div');
   el.className = `toast ${type}`;
-  el.textContent = msg;
+  const icons = { error:'❌', success:'✅', info:'💬' };
+  el.innerHTML = `<span>${icons[type]||'💬'}</span><span>${msg}</span>`;
   wrap.appendChild(el);
-  setTimeout(() => el.remove(), 3100);
+  setTimeout(() => { if (el.parentNode) el.remove(); }, 3200);
 }
 
-// ══════════════════════════════════════════════════
-// KEYBOARD SHORTCUTS
-// ══════════════════════════════════════════════════
-document.getElementById('home-name').addEventListener('keydown', e => {
-  if (e.key === 'Enter') goToCreate();
-});
-document.getElementById('home-code').addEventListener('keydown', e => {
-  if (e.key === 'Enter') joinRoom();
-});
-
-// Uppercase room code
-document.getElementById('home-code').addEventListener('input', function() {
-  this.value = this.value.toUpperCase();
-});
+// ═══════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════
+document.getElementById('h-name').addEventListener('keydown', e => { if(e.key==='Enter') goCreate(); });
+document.getElementById('h-code').addEventListener('keydown', e => { if(e.key==='Enter') doJoin(); });
+document.getElementById('h-code').addEventListener('input', function() { this.value = this.value.toUpperCase(); });
 </script>
 </body>
 </html>
