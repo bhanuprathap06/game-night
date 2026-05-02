@@ -29,7 +29,6 @@ function broadcast(code) {
 
 // ─── TTT ──────────────────────────────────────────────────────────────────────
 const TTT_LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-
 function checkTTT(board) {
   for (const line of TTT_LINES) {
     const [a,b,c] = line;
@@ -39,9 +38,8 @@ function checkTTT(board) {
   return null;
 }
 
-// ─── Imposter Word Packs (50+ categories) ────────────────────────────────────
+// ─── Imposter Word Packs ─────────────────────────────────────────────────────
 const PACKS = [
-  // Animals
   { category:'Wild Animals', word:'Tiger', imposterWord:'Leopard' },
   { category:'Ocean Creatures', word:'Shark', imposterWord:'Dolphin' },
   { category:'Birds', word:'Eagle', imposterWord:'Hawk' },
@@ -49,7 +47,6 @@ const PACKS = [
   { category:'Reptiles', word:'Crocodile', imposterWord:'Alligator' },
   { category:'African Animals', word:'Elephant', imposterWord:'Hippo' },
   { category:'Primates', word:'Gorilla', imposterWord:'Chimpanzee' },
-  // Food & Drink
   { category:'Fast Food', word:'Burger', imposterWord:'Hot Dog' },
   { category:'Italian Food', word:'Pizza', imposterWord:'Pasta' },
   { category:'Cocktails', word:'Margarita', imposterWord:'Mojito' },
@@ -58,7 +55,6 @@ const PACKS = [
   { category:'Breakfast', word:'Pancakes', imposterWord:'Waffles' },
   { category:'Street Food', word:'Tacos', imposterWord:'Burrito' },
   { category:'Coffee', word:'Espresso', imposterWord:'Americano' },
-  // Entertainment & Pop Culture
   { category:'Streaming Services', word:'Netflix', imposterWord:'Hulu' },
   { category:'Social Media', word:'Instagram', imposterWord:'TikTok' },
   { category:'Video Games', word:'Fortnite', imposterWord:'Warzone' },
@@ -66,31 +62,23 @@ const PACKS = [
   { category:'DC Heroes', word:'Batman', imposterWord:'Superman' },
   { category:'Animated Shows', word:'South Park', imposterWord:'Family Guy' },
   { category:'Reality TV', word:'Survivor', imposterWord:'Big Brother' },
-  { category:'Talk Shows', word:'Jimmy Fallon', imposterWord:'Jimmy Kimmel' },
-  { category:'Podcasts', word:'Joe Rogan', imposterWord:'Call Her Daddy' },
-  // Places
   { category:'World Cities', word:'Tokyo', imposterWord:'Seoul' },
   { category:'Beach Destinations', word:'Maldives', imposterWord:'Bali' },
   { category:'European Cities', word:'Paris', imposterWord:'Rome' },
   { category:'US Cities', word:'New York', imposterWord:'Los Angeles' },
   { category:'Theme Parks', word:'Disneyland', imposterWord:'Universal Studios' },
   { category:'Deserts', word:'Sahara', imposterWord:'Gobi' },
-  // Technology
   { category:'Smartphones', word:'iPhone', imposterWord:'Samsung Galaxy' },
   { category:'Browsers', word:'Chrome', imposterWord:'Firefox' },
   { category:'Car Brands', word:'Tesla', imposterWord:'BMW' },
   { category:'Tech Giants', word:'Google', imposterWord:'Microsoft' },
   { category:'AI Chatbots', word:'ChatGPT', imposterWord:'Claude' },
   { category:'Gaming Consoles', word:'PlayStation', imposterWord:'Xbox' },
-  { category:'Electric Cars', word:'Tesla Model 3', imposterWord:'Tesla Model S' },
-  // Sports
   { category:'Ball Sports', word:'Basketball', imposterWord:'Volleyball' },
   { category:'Combat Sports', word:'Boxing', imposterWord:'MMA' },
   { category:'Racing', word:'Formula 1', imposterWord:'NASCAR' },
   { category:'Winter Sports', word:'Skiing', imposterWord:'Snowboarding' },
   { category:'Water Sports', word:'Surfing', imposterWord:'Wakeboarding' },
-  { category:'Tennis Players', word:'Federer', imposterWord:'Djokovic' },
-  // Music & Arts
   { category:'Music Genres', word:'Hip Hop', imposterWord:'R&B' },
   { category:'Dance Styles', word:'Salsa', imposterWord:'Bachata' },
   { category:'Fashion Brands', word:'Gucci', imposterWord:'Louis Vuitton' },
@@ -98,22 +86,16 @@ const PACKS = [
   { category:'Musical Instruments', word:'Guitar', imposterWord:'Bass Guitar' },
   { category:'Pop Icons', word:'Beyoncé', imposterWord:'Rihanna' },
   { category:'Rock Bands', word:'Metallica', imposterWord:'AC/DC' },
-  // Science & Nature
   { category:'Planets', word:'Mars', imposterWord:'Venus' },
   { category:'Natural Disasters', word:'Tornado', imposterWord:'Hurricane' },
   { category:'Gems', word:'Diamond', imposterWord:'Ruby' },
   { category:'Elements', word:'Gold', imposterWord:'Silver' },
-  { category:'Space Missions', word:'Apollo 11', imposterWord:'Artemis' },
-  { category:'Big Cats', word:'Lion', imposterWord:'Tiger' },
-  // Random Fun
   { category:'Superpowers', word:'Invisibility', imposterWord:'Teleportation' },
   { category:'Mythical Creatures', word:'Dragon', imposterWord:'Griffin' },
   { category:'Card Games', word:'Poker', imposterWord:'Blackjack' },
   { category:'Board Games', word:'Chess', imposterWord:'Checkers' },
-  { category:'Conspiracy Theories', word:'Flat Earth', imposterWord:'Moon Landing Hoax' },
   { category:'Phobias', word:'Arachnophobia', imposterWord:'Claustrophobia' },
   { category:'Languages', word:'Mandarin', imposterWord:'Cantonese' },
-  { category:'Religions', word:'Buddhism', imposterWord:'Hinduism' },
 ];
 
 // ─── Decode Messages ──────────────────────────────────────────────────────────
@@ -138,11 +120,11 @@ const MESSAGES = [
   { message:'CROSS THE FINISH LINE', hint:'Victory awaits' },
 ];
 
-// ─── Truth or Dare (18+) ──────────────────────────────────────────────────────
+// ─── Truth or Dare ────────────────────────────────────────────────────────────
 const TRUTHS = [
   "What's the most adventurous place you've ever hooked up?",
   "Have you ever had a one-night stand? Would you do it again?",
-  "What is your biggest sexual fantasy you've never told anyone?",
+  "What is your biggest secret fantasy you've never told anyone?",
   "Have you ever sent or received an explicit photo? To whom?",
   "What's the most embarrassing thing that's happened to you in the bedroom?",
   "Have you ever faked it? Be honest.",
@@ -205,21 +187,87 @@ const DARES = [
   "Do 20 seconds of your sexiest dance move — no music needed.",
 ];
 
+// ─── Trivia Questions ─────────────────────────────────────────────────────────
+const TRIVIA_QUESTIONS = [
+  // Geography
+  { q:'What is the capital of Australia?', opts:['Sydney','Melbourne','Canberra','Brisbane'], correct:2 },
+  { q:'Which is the world\'s largest ocean?', opts:['Atlantic','Indian','Arctic','Pacific'], correct:3 },
+  { q:'Which country has the most natural lakes?', opts:['Russia','Canada','Brazil','USA'], correct:1 },
+  { q:'What is the longest river in the world?', opts:['Amazon','Nile','Yangtze','Mississippi'], correct:1 },
+  { q:'Which country is home to the Great Barrier Reef?', opts:['USA','Brazil','Indonesia','Australia'], correct:3 },
+  { q:'What is the capital of Japan?', opts:['Osaka','Kyoto','Hiroshima','Tokyo'], correct:3 },
+  { q:'Which country has the largest population?', opts:['USA','India','China','Indonesia'], correct:1 },
+  // Science & Tech
+  { q:'What element has the chemical symbol Au?', opts:['Silver','Platinum','Gold','Copper'], correct:2 },
+  { q:'How many bones are in an adult human body?', opts:['186','206','226','246'], correct:1 },
+  { q:'What planet is closest to the Sun?', opts:['Venus','Earth','Mars','Mercury'], correct:3 },
+  { q:'What does DNA stand for?', opts:['Deoxyribonucleic Acid','Dynamic Neural Agent','Dinitrogen Activator','Deoxyribose Nuclease'], correct:0 },
+  { q:'At what temperature does water boil at sea level (°C)?', opts:['90','95','100','105'], correct:2 },
+  { q:'What is the speed of light (approximately)?', opts:['200,000 km/s','250,000 km/s','300,000 km/s','350,000 km/s'], correct:2 },
+  { q:'What is the most abundant gas in Earth\'s atmosphere?', opts:['Oxygen','Carbon Dioxide','Nitrogen','Argon'], correct:2 },
+  { q:'What is the powerhouse of the cell?', opts:['Nucleus','Ribosome','Mitochondria','Golgi body'], correct:2 },
+  // Movies & TV
+  { q:'Who played Iron Man in the Marvel Cinematic Universe?', opts:['Chris Evans','Robert Downey Jr.','Chris Hemsworth','Mark Ruffalo'], correct:1 },
+  { q:'What streaming platform released Stranger Things?', opts:['HBO','Hulu','Amazon','Netflix'], correct:3 },
+  { q:'Who directed Inception (2010)?', opts:['Steven Spielberg','James Cameron','Christopher Nolan','Ridley Scott'], correct:2 },
+  { q:'Which movie has the line "You can\'t handle the truth!"?', opts:['The Firm','Philadelphia','A Few Good Men','Primal Fear'], correct:2 },
+  { q:'What is the highest-grossing film of all time?', opts:['Titanic','Avengers: Endgame','Avatar','The Lion King'], correct:2 },
+  // Music
+  { q:'Which band released Bohemian Rhapsody?', opts:['The Beatles','Led Zeppelin','Queen','Pink Floyd'], correct:2 },
+  { q:'How many strings does a standard guitar have?', opts:['4','5','6','7'], correct:2 },
+  { q:'Who is known as the "Queen of Pop"?', opts:['Beyoncé','Madonna','Lady Gaga','Rihanna'], correct:1 },
+  { q:'Which artist released Thriller in 1982?', opts:['Prince','Michael Jackson','David Bowie','Stevie Wonder'], correct:1 },
+  { q:'What is the best-selling music album of all time?', opts:['The Eagles - Hotel California','Michael Jackson - Thriller','Beatles - Abbey Road','Fleetwood Mac - Rumours'], correct:1 },
+  // Sports
+  { q:'How many players are on a basketball team on court?', opts:['4','5','6','7'], correct:1 },
+  { q:'What sport is played at Wimbledon?', opts:['Cricket','Polo','Tennis','Badminton'], correct:2 },
+  { q:'How many rings are on the Olympic flag?', opts:['4','5','6','7'], correct:1 },
+  { q:'How often does the FIFA World Cup take place?', opts:['Every 2 years','Every 3 years','Every 4 years','Every 5 years'], correct:2 },
+  { q:'Which country has won the most FIFA World Cups?', opts:['Germany','Italy','Argentina','Brazil'], correct:3 },
+  // Pop Culture & Tech
+  { q:'What year was the iPhone first released?', opts:['2005','2006','2007','2008'], correct:2 },
+  { q:'In Harry Potter, what house is Harry sorted into?', opts:['Slytherin','Ravenclaw','Hufflepuff','Gryffindor'], correct:3 },
+  { q:'Which gaming console is made by Sony?', opts:['Xbox','Nintendo Switch','PlayStation','Steam Deck'], correct:2 },
+  { q:'What does URL stand for?', opts:['Universal Resource Locator','Uniform Resource Locator','United Routing Language','Universal Record Link'], correct:1 },
+  { q:'How many characters can a standard tweet be?', opts:['140','200','240','280'], correct:3 },
+  // History
+  { q:'In what year did World War II end?', opts:['1943','1944','1945','1946'], correct:2 },
+  { q:'Who was the first person to walk on the Moon?', opts:['Buzz Aldrin','Yuri Gagarin','Neil Armstrong','John Glenn'], correct:2 },
+  { q:'What was the name of the ship that sank in 1912?', opts:['Lusitania','Britannic','Olympic','Titanic'], correct:3 },
+  { q:'Who painted the Mona Lisa?', opts:['Michelangelo','Raphael','Leonardo da Vinci','Caravaggio'], correct:2 },
+  { q:'In which year did the Berlin Wall fall?', opts:['1987','1988','1989','1990'], correct:2 },
+  // Food & Drink
+  { q:'What is the main ingredient in guacamole?', opts:['Tomato','Avocado','Lime','Onion'], correct:1 },
+  { q:'Which country invented sushi?', opts:['China','Korea','Japan','Thailand'], correct:2 },
+  { q:'What type of pastry is a croissant?', opts:['Choux','Shortcrust','Filo','Puff'], correct:3 },
+  { q:'What is the national dish of Spain?', opts:['Tapas','Gazpacho','Paella','Churros'], correct:2 },
+  { q:'How many teaspoons are in a tablespoon?', opts:['2','3','4','5'], correct:1 },
+  // Random Fun
+  { q:'How many colors are in a rainbow?', opts:['5','6','7','8'], correct:2 },
+  { q:'What is the most widely spoken language in the world?', opts:['English','Spanish','Mandarin Chinese','Hindi'], correct:2 },
+  { q:'How many sides does a pentagon have?', opts:['4','5','6','7'], correct:1 },
+  { q:'What animal is the tallest in the world?', opts:['Elephant','Giraffe','Camel','Ostrich'], correct:1 },
+  { q:'How many hearts does an octopus have?', opts:['1','2','3','4'], correct:2 },
+  // India
+  { q:'What is the capital of India?', opts:['Mumbai','Kolkata','New Delhi','Chennai'], correct:2 },
+  { q:'In what year did India gain independence?', opts:['1945','1946','1947','1948'], correct:2 },
+  { q:'What is the national animal of India?', opts:['Lion','Elephant','Bengal Tiger','Snow Leopard'], correct:2 },
+  { q:'Which Indian city is the "Silicon Valley of India"?', opts:['Mumbai','Hyderabad','Bengaluru','Pune'], correct:2 },
+  { q:'What is the longest river in India?', opts:['Yamuna','Brahmaputra','Ganga','Godavari'], correct:2 },
+];
+
 // ─── Caesar Cipher ────────────────────────────────────────────────────────────
 function encode(text, shift) {
   return text.split('').map(c => {
-    if (c >= 'A' && c <= 'Z') return String.fromCharCode(((c.charCodeAt(0)-65+shift)%26)+65);
+    if (c >= 'A' && c <= 'Z') return String.fromCharCode(((c.charCodeAt(0) - 65 + shift) % 26) + 65);
     return c;
   }).join('');
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function rnd(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-function shuffle(arr) { return [...arr].sort(() => Math.random()-0.5); }
-function messageStructure(msg) {
-  // Returns array: 'L' for letter, 'S' for space
-  return msg.split('').map(c => c === ' ' ? 'S' : 'L');
-}
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+function messageStructure(msg) { return msg.split('').map(c => c === ' ' ? 'S' : 'L'); }
 
 // ─── Game Starters ────────────────────────────────────────────────────────────
 function startTTT(room) {
@@ -270,6 +318,7 @@ function startImposter(room) {
   });
 
   setTimeout(() => {
+    if (!rooms[room.code]) return;
     const firstId = clueOrder[0];
     const firstPlayer = room.players.find(p => p.id === firstId);
     io.to(room.code).emit('imposter_clue_phase', {
@@ -315,15 +364,110 @@ function startTOD(room) {
   });
 }
 
+function startTrivia(room) {
+  const qs = shuffle([...TRIVIA_QUESTIONS]).slice(0, 10);
+  room.gameData = {
+    questions: qs,
+    currentQ: 0,
+    answers: {},
+    timer: null,
+    revealed: false,
+    questionStartTime: 0,
+  };
+  emitTriviaQuestion(room);
+}
+
+function emitTriviaQuestion(room) {
+  const gd = room.gameData;
+  if (gd.currentQ >= gd.questions.length) {
+    io.to(room.code).emit('trivia_end', { scores: room.players });
+    return;
+  }
+  const q = gd.questions[gd.currentQ];
+  gd.answers = {};
+  gd.revealed = false;
+  gd.questionStartTime = Date.now();
+
+  io.to(room.code).emit('trivia_question', {
+    question: q.q,
+    options: q.opts,
+    questionNum: gd.currentQ + 1,
+    totalQuestions: gd.questions.length,
+    scores: room.players,
+  });
+
+  clearTimeout(gd.timer);
+  gd.timer = setTimeout(() => {
+    if (!gd.revealed) revealTriviaAnswer(room);
+  }, 15000);
+}
+
+function revealTriviaAnswer(room) {
+  if (!room.gameData) return;
+  clearTimeout(room.gameData.timer);
+  const gd = room.gameData;
+  gd.revealed = true;
+  const q = gd.questions[gd.currentQ];
+
+  const answeredBy = room.players.map(p => {
+    const ans = gd.answers[p.id];
+    const correct = ans !== undefined && ans.idx === q.correct;
+    let pts = 0;
+    if (correct) {
+      const elapsed = ans.time - gd.questionStartTime;
+      pts = Math.max(100, 300 - Math.floor(elapsed / 75));
+      const idx = room.players.findIndex(pl => pl.id === p.id);
+      if (idx >= 0) room.players[idx].score += pts;
+    }
+    return { id: p.id, name: p.name, answerIdx: ans !== undefined ? ans.idx : -1, correct, pts };
+  });
+
+  io.to(room.code).emit('trivia_reveal', {
+    correctIdx: q.correct,
+    correctAnswer: q.opts[q.correct],
+    answeredBy,
+    scores: room.players,
+    questionNum: gd.currentQ + 1,
+    totalQuestions: gd.questions.length,
+    isLast: gd.currentQ >= gd.questions.length - 1,
+  });
+}
+
+function startWordChain(room) {
+  const GOOD_LETTERS = 'ABCDEFGHILMNOPRSTW';
+  const startLetter = GOOD_LETTERS[Math.floor(Math.random() * GOOD_LETTERS.length)];
+  const startIdx = Math.floor(Math.random() * room.players.length);
+  const first = room.players[startIdx];
+
+  room.gameData = {
+    lastLetter: startLetter,
+    words: [],
+    usedWords: new Set(),
+    turnIdx: startIdx,
+    currentPlayerId: first.id,
+    currentPlayerName: first.name,
+    eliminated: [],
+  };
+
+  io.to(room.code).emit('wordchain_start', {
+    currentPlayerId: first.id,
+    currentPlayerName: first.name,
+    lastLetter: startLetter,
+    words: [],
+    players: room.players.map(p => ({ id: p.id, name: p.name, score: p.score, eliminated: false })),
+  });
+}
+
 // ─── Socket.io ───────────────────────────────────────────────────────────────
 io.on('connection', (socket) => {
-  console.log(`✅ ${socket.id}`);
+  console.log(`✅ connected: ${socket.id}`);
 
   socket.on('create_room', ({ name, game }) => {
+    if (!name || !game) return;
     const code = genCode();
     rooms[code] = {
       code, hostId: socket.id, game,
-      players: [{ id: socket.id, name, score: 0 }],
+      players: [{ id: socket.id, name: name.slice(0,20), score: 0 }],
       state: 'lobby', gameData: {}
     };
     socket.join(code);
@@ -332,6 +476,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('join_room', ({ name, code }) => {
+    if (!name || !code) return;
     const upper = code.toUpperCase().trim();
     const room = rooms[upper];
     if (!room) { socket.emit('error_msg', 'Room not found. Check the code!'); return; }
@@ -340,7 +485,7 @@ io.on('connection', (socket) => {
     if (room.players.find(p => p.name.toLowerCase() === name.toLowerCase())) {
       socket.emit('error_msg', 'That name is taken in this room!'); return;
     }
-    room.players.push({ id: socket.id, name, score: 0 });
+    room.players.push({ id: socket.id, name: name.slice(0,20), score: 0 });
     socket.join(upper);
     socket.emit('room_joined', { code: upper });
     broadcast(upper);
@@ -356,28 +501,28 @@ io.on('connection', (socket) => {
   socket.on('start_game', ({ code }) => {
     const room = rooms[code];
     if (!room || room.hostId !== socket.id) return;
-    const minPlayers = { tictactoe: 2, imposter: 3, decode: 2, truthordare: 2 };
+    const minPlayers = { tictactoe:2, imposter:3, decode:2, truthordare:2, trivia:2, wordchain:3 };
     const min = minPlayers[room.game] || 2;
     if (room.players.length < min) {
       socket.emit('error_msg', `Need at least ${min} players for this game!`); return;
     }
     room.state = 'playing';
-    if (room.game === 'tictactoe') startTTT(room);
-    else if (room.game === 'imposter') startImposter(room);
-    else if (room.game === 'decode') startDecode(room);
+    if      (room.game === 'tictactoe')   startTTT(room);
+    else if (room.game === 'imposter')    startImposter(room);
+    else if (room.game === 'decode')      startDecode(room);
     else if (room.game === 'truthordare') startTOD(room);
+    else if (room.game === 'trivia')      startTrivia(room);
+    else if (room.game === 'wordchain')   startWordChain(room);
   });
 
-  // ── TTT ──────────────────────────────────────────────────────────────────
+  // ── TTT ──────────────────────────────────────────────────────────────────────
   socket.on('ttt_move', ({ code, index }) => {
     const room = rooms[code];
     if (!room || room.game !== 'tictactoe') return;
     const gd = room.gameData;
     const [p1, p2] = gd.players;
     const activeId = gd.turn === 'X' ? p1.id : p2.id;
-    if (socket.id !== activeId) return;
-    if (gd.board[index] !== '') return;
-    if (gd.winner) return;
+    if (socket.id !== activeId || gd.board[index] !== '' || gd.winner) return;
 
     gd.board[index] = gd.turn;
     const result = checkTTT(gd.board);
@@ -421,7 +566,7 @@ io.on('connection', (socket) => {
     });
   });
 
-  // ── Imposter ─────────────────────────────────────────────────────────────
+  // ── Imposter ──────────────────────────────────────────────────────────────────
   socket.on('imposter_clue', ({ code, clue }) => {
     const room = rooms[code];
     if (!room || room.game !== 'imposter') return;
@@ -453,13 +598,12 @@ io.on('connection', (socket) => {
     const room = rooms[code];
     if (!room || room.game !== 'imposter') return;
     const gd = room.gameData;
-    if (gd.votes[socket.id] || socket.id === votedId) return; // no self-vote
+    if (gd.votes[socket.id] || socket.id === votedId) return;
     gd.votes[socket.id] = votedId;
     const totalVotes = Object.keys(gd.votes).length;
-    io.to(code).emit('imposter_vote_update', { votes: gd.votes, totalVotes, needed: room.players.length });
+    io.to(code).emit('imposter_vote_update', { totalVotes, needed: room.players.length });
 
     if (totalVotes >= room.players.length) {
-      // Tally by player id
       const tally = {};
       Object.values(gd.votes).forEach(id => { tally[id] = (tally[id] || 0) + 1; });
       const mostVotedId = Object.entries(tally).sort((a,b) => b[1]-a[1])[0][0];
@@ -474,14 +618,14 @@ io.on('connection', (socket) => {
       }
 
       io.to(code).emit('imposter_reveal', {
-        imposterName: imposterPlayer?.name || '?',
+        imposterName: imposterPlayer ? imposterPlayer.name : '?',
         imposterId: gd.imposterId,
         word: gd.word,
         imposterWord: gd.imposterWord,
         category: gd.category,
         caught,
         mostVotedId,
-        mostVotedName: mostVotedPlayer?.name || '?',
+        mostVotedName: mostVotedPlayer ? mostVotedPlayer.name : '?',
         scores: room.players,
       });
     }
@@ -493,7 +637,7 @@ io.on('connection', (socket) => {
     startImposter(room);
   });
 
-  // ── Decode ───────────────────────────────────────────────────────────────
+  // ── Decode ────────────────────────────────────────────────────────────────────
   socket.on('decode_guess', ({ code, guess }) => {
     const room = rooms[code];
     if (!room || room.game !== 'decode') return;
@@ -508,18 +652,11 @@ io.on('connection', (socket) => {
       const idx = room.players.findIndex(p => p.id === socket.id);
       if (idx >= 0) room.players[idx].score += 3;
       io.to(code).emit('decode_solved', {
-        solverId: socket.id,
-        solver: player.name,
-        message: gd.message,
-        scores: room.players,
-        guesses: gd.guesses,
+        solverId: socket.id, solver: player.name,
+        message: gd.message, scores: room.players, guesses: gd.guesses,
       });
     } else {
-      io.to(code).emit('decode_wrong_guess', {
-        guesser: player.name,
-        guess: clean,
-        guesses: gd.guesses,
-      });
+      io.to(code).emit('decode_wrong_guess', { guesser: player.name, guess: clean, guesses: gd.guesses });
     }
   });
 
@@ -534,10 +671,7 @@ io.on('connection', (socket) => {
     const count = Math.ceil(letters.length * (gd.hintsUsed / 4));
     const revealPositions = letters.slice(0, count);
     io.to(code).emit('decode_hint_given', {
-      revealPositions,
-      message: gd.message,
-      hintsUsed: gd.hintsUsed,
-      hint: gd.hint,
+      revealPositions, message: gd.message, hintsUsed: gd.hintsUsed, hint: gd.hint,
     });
   });
 
@@ -547,7 +681,7 @@ io.on('connection', (socket) => {
     startDecode(room);
   });
 
-  // ── Truth or Dare ─────────────────────────────────────────────────────────
+  // ── Truth or Dare ─────────────────────────────────────────────────────────────
   socket.on('tod_pick', ({ code, choice }) => {
     const room = rooms[code];
     if (!room || room.game !== 'truthordare') return;
@@ -557,10 +691,7 @@ io.on('connection', (socket) => {
     gd.currentChoice = choice;
     gd.currentContent = content;
     io.to(code).emit('tod_show', {
-      playerName: gd.currentPlayerName,
-      playerId: gd.currentPlayerId,
-      choice,
-      content,
+      playerName: gd.currentPlayerName, playerId: gd.currentPlayerId, choice, content,
     });
   });
 
@@ -575,9 +706,7 @@ io.on('connection', (socket) => {
     gd.currentChoice = null;
     gd.currentContent = null;
     io.to(code).emit('tod_turn', {
-      currentPlayerId: next.id,
-      currentPlayerName: next.name,
-      players: room.players,
+      currentPlayerId: next.id, currentPlayerName: next.name, players: room.players,
     });
   });
 
@@ -592,32 +721,157 @@ io.on('connection', (socket) => {
     gd.currentChoice = null;
     gd.currentContent = null;
     io.to(code).emit('tod_turn', {
-      currentPlayerId: next.id,
-      currentPlayerName: next.name,
-      players: room.players,
-      spun: true,
+      currentPlayerId: next.id, currentPlayerName: next.name, players: room.players, spun: true,
     });
   });
 
-  // ── Lobby ─────────────────────────────────────────────────────────────────
+  // ── Trivia Blitz ──────────────────────────────────────────────────────────────
+  socket.on('trivia_answer', ({ code, answerIdx }) => {
+    const room = rooms[code];
+    if (!room || room.game !== 'trivia') return;
+    const gd = room.gameData;
+    if (gd.revealed || gd.answers[socket.id] !== undefined) return;
+    if (typeof answerIdx !== 'number' || answerIdx < 0 || answerIdx > 3) return;
+    gd.answers[socket.id] = { idx: answerIdx, time: Date.now() };
+    const answeredCount = Object.keys(gd.answers).length;
+    io.to(code).emit('trivia_answer_count', { answered: answeredCount, total: room.players.length });
+    if (answeredCount >= room.players.length) revealTriviaAnswer(room);
+  });
+
+  socket.on('trivia_next', ({ code }) => {
+    const room = rooms[code];
+    if (!room || room.game !== 'trivia' || room.hostId !== socket.id) return;
+    if (!room.gameData.revealed) return;
+    room.gameData.currentQ++;
+    emitTriviaQuestion(room);
+  });
+
+  // ── Word Chain ────────────────────────────────────────────────────────────────
+  socket.on('wordchain_submit', ({ code, word }) => {
+    const room = rooms[code];
+    if (!room || room.game !== 'wordchain') return;
+    const gd = room.gameData;
+    if (socket.id !== gd.currentPlayerId) return;
+
+    const clean = (word || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+    if (clean.length < 2) {
+      socket.emit('wordchain_invalid', { reason: 'Word must be at least 2 letters' }); return;
+    }
+    if (clean[0] !== gd.lastLetter) {
+      socket.emit('wordchain_invalid', { reason: `Word must start with "${gd.lastLetter}"` }); return;
+    }
+    if (gd.usedWords.has(clean)) {
+      socket.emit('wordchain_invalid', { reason: 'Word already used!' }); return;
+    }
+
+    gd.usedWords.add(clean);
+    const prevLetter = gd.lastLetter;
+    gd.lastLetter = clean[clean.length - 1];
+    const player = room.players.find(p => p.id === socket.id);
+    gd.words.push({ playerName: player ? player.name : 'Unknown', word: clean });
+
+    const idx = room.players.findIndex(p => p.id === socket.id);
+    if (idx >= 0) room.players[idx].score += 1;
+
+    // Advance to next non-eliminated player
+    let nextIdx = (gd.turnIdx + 1) % room.players.length;
+    let safety = 0;
+    while (room.players[nextIdx] && gd.eliminated.includes(room.players[nextIdx].id) && safety++ < room.players.length) {
+      nextIdx = (nextIdx + 1) % room.players.length;
+    }
+    gd.turnIdx = nextIdx;
+    const next = room.players[nextIdx];
+    if (!next) return; // all players eliminated — shouldn't happen but guard anyway
+    gd.currentPlayerId = next.id;
+    gd.currentPlayerName = next.name;
+
+    io.to(code).emit('wordchain_turn', {
+      currentPlayerId: next.id,
+      currentPlayerName: next.name,
+      lastLetter: gd.lastLetter,
+      lastWord: clean,
+      lastWordPlayer: player ? player.name : 'Unknown',
+      words: gd.words.slice(-8),
+      players: room.players.map(p => ({ ...p, eliminated: gd.eliminated.includes(p.id) })),
+    });
+  });
+
+  socket.on('wordchain_eliminate', ({ code, targetId }) => {
+    const room = rooms[code];
+    if (!room || room.game !== 'wordchain' || room.hostId !== socket.id) return;
+    const gd = room.gameData;
+
+    if (!gd.eliminated.includes(targetId)) {
+      gd.eliminated.push(targetId);
+    }
+
+    const alive = room.players.filter(p => !gd.eliminated.includes(p.id));
+    if (alive.length <= 1) {
+      const winner = alive[0];
+      if (winner) {
+        const wi = room.players.findIndex(p => p.id === winner.id);
+        if (wi >= 0) room.players[wi].score += 5;
+      }
+      io.to(code).emit('wordchain_end', {
+        winner: winner ? winner.name : null, scores: room.players,
+      });
+      return;
+    }
+
+    // If eliminated player is current, advance
+    if (gd.currentPlayerId === targetId) {
+      let nextIdx = (gd.turnIdx + 1) % room.players.length;
+      let safety = 0;
+      while (room.players[nextIdx] && gd.eliminated.includes(room.players[nextIdx].id) && safety++ < room.players.length) {
+        nextIdx = (nextIdx + 1) % room.players.length;
+      }
+      gd.turnIdx = nextIdx;
+      const next = room.players[nextIdx];
+      gd.currentPlayerId = next.id;
+      gd.currentPlayerName = next.name;
+    }
+
+    io.to(code).emit('wordchain_turn', {
+      currentPlayerId: gd.currentPlayerId,
+      currentPlayerName: gd.currentPlayerName,
+      lastLetter: gd.lastLetter,
+      words: gd.words.slice(-8),
+      players: room.players.map(p => ({ ...p, eliminated: gd.eliminated.includes(p.id) })),
+      eliminatedId: targetId,
+    });
+  });
+
+  socket.on('wordchain_next_round', ({ code }) => {
+    const room = rooms[code];
+    if (!room || room.game !== 'wordchain' || room.hostId !== socket.id) return;
+    startWordChain(room);
+  });
+
+  // ── Lobby ─────────────────────────────────────────────────────────────────────
   socket.on('back_to_lobby', ({ code }) => {
     const room = rooms[code];
     if (!room || room.hostId !== socket.id) return;
+    if (room.gameData && room.gameData.timer) clearTimeout(room.gameData.timer);
     room.state = 'lobby';
     room.gameData = {};
     broadcast(code);
     io.to(code).emit('lobby_reset');
   });
 
-  // ── Disconnect ────────────────────────────────────────────────────────────
+  // ── Disconnect ────────────────────────────────────────────────────────────────
   socket.on('disconnect', () => {
+    console.log(`❌ disconnected: ${socket.id}`);
     for (const [code, room] of Object.entries(rooms)) {
       const idx = room.players.findIndex(p => p.id === socket.id);
       if (idx === -1) continue;
       const name = room.players[idx].name;
       const wasHost = room.hostId === socket.id;
       room.players.splice(idx, 1);
-      if (room.players.length === 0) { delete rooms[code]; continue; }
+      if (room.players.length === 0) {
+        if (room.gameData && room.gameData.timer) clearTimeout(room.gameData.timer);
+        delete rooms[code];
+        continue;
+      }
       if (wasHost) room.hostId = room.players[0].id;
       io.to(code).emit('player_left', { name, players: room.players, newHostId: room.hostId });
       broadcast(code);
